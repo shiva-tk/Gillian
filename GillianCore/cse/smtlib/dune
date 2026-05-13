@@ -1,0 +1,4 @@
+(library
+ (name smtlib)
+ (public_name gillian.cse.smtlib)
+ (libraries extracted extraction_utils sexplib str))

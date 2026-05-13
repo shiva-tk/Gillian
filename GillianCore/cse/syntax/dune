@@ -1,0 +1,4 @@
+(library
+ (name syntax)
+ (public_name gillian.cse.syntax)
+ (libraries extracted extraction_utils))

@@ -1,7 +1,7 @@
 (library
  (name smt)
  (public_name gillian.smt)
- (libraries gil_syntax utils simple_smt sexplib)
+ (libraries gil_syntax utils simple_smt sexplib zarith cse syntax)
  (preprocess
   (pps ppx_deriving.std ppx_deriving_yojson))
  (instrumentation

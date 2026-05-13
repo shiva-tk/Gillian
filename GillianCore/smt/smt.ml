@@ -43,8 +43,6 @@ let rec init_solver () =
   let () =
     z3_config |> List.iter (fun (k, v) -> cmd (set_option (":" ^ k) v))
   in
-  let decls = List.rev !init_decls in
-  let () = decls |> List.iter cmd in
   let () = cmd (push 1) in
   ()
 
@@ -964,11 +962,14 @@ module Dump = struct
           cmds)
 end
 
-let reset_solver () =
-  let () = cmd (pop 1) in
-  let () = RepeatCache.clear () in
-  let () = cmd (push 1) in
-  ()
+let reset_solver ~use_certified () =
+  cmd (pop 1);
+  RepeatCache.clear ();
+  cmd (push 1);
+  if use_certified then CertifiedSMT.Smt.decls |> List.iter cmd
+  else
+    let decls = List.rev !init_decls in
+    decls |> List.iter cmd
 
 let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
   let () =
@@ -977,10 +978,23 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
           (Fmt.iter ~sep:(Fmt.any "@\n") Expr.Set.iter Expr.pp)
           fs pp_typenv gamma)
   in
-  let () = reset_solver () in
-  let encoded_assertions = encode_assertions fs gamma in
+  let encoded_assertions, use_certified =
+    if !Config.certified_smt then (
+      L.verbose (fun m -> m "Attempting to use certified SMT backend");
+      let encoded = CertifiedSMT.Smt.encode gamma (Expr.Set.to_list fs) in
+      match encoded with
+      | Some encoded -> (encoded, true)
+      | None ->
+          L.normal (fun m ->
+              m
+                "Failed to coerce expression or gamma, reverting to unverified \
+                 SMT backend.");
+          (encode_assertions fs gamma, false))
+    else (encode_assertions fs gamma, false)
+  in
+  let () = reset_solver ~use_certified () in
   let () = if !Config.dump_smt then Dump.dump fs gamma encoded_assertions in
-  let () = List.iter cmd !builtin_funcs in
+  let () = if not use_certified then List.iter cmd !builtin_funcs in
   let () = List.iter cmd encoded_assertions in
   L.verbose (fun fmt -> fmt "Reached SMT.");
   let result = check !solver in
@@ -1051,7 +1065,7 @@ let lift_model
     (gamma : typenv)
     (subst_update : string -> Expr.t -> unit)
     (target_vars : Expr.Set.t) : unit =
-  let () = reset_solver () in
+  let () = reset_solver ~use_certified:false () in
   let model_eval = (model_eval' !solver model).eval [] in
 
   let get_val x =

@@ -14,7 +14,8 @@
   gil_parsing
   logging
   incrementalAnalysis
-  debugger_log)
+  debugger_log
+  zarith)
  (preprocess
   (pps ppx_deriving.std ppx_deriving_yojson))
  (instrumentation

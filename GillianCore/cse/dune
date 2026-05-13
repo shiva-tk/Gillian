@@ -1,0 +1,6 @@
+(library
+ (name cse)
+ (public_name gillian.cse)
+ (libraries sexplib syntax extraction_utils extracted certified_smt smtlib)
+ (instrumentation
+  (backend landmarks --auto)))

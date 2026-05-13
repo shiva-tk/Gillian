@@ -69,6 +69,9 @@ let delay_entailment = ref true
 (* If true, will dump a folder containing all smt queries made to the solver *)
 let dump_smt = ref false
 
+(* If true, will attempt to use the certified SMT backend, falling back on the unverified one *)
+let certified_smt = ref false
+
 (** {2 Bulk testing} *)
 
 (** If activated, at the end of bulk execution or bulk wpst, and only with the

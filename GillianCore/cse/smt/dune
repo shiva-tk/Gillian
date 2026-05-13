@@ -1,0 +1,4 @@
+(library
+ (name certified_smt)
+ (public_name gillian.cse.smt)
+ (libraries extracted utils syntax smtlib sexplib))

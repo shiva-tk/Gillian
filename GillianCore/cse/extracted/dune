@@ -1,0 +1,5 @@
+(library
+ (name extracted)
+ (public_name gillian.cse.extracted)
+ (flags
+  (:standard -w -39)))
