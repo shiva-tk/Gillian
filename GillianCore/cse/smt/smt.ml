@@ -4,8 +4,13 @@ open Extraction_utils
 module type S = sig
   type exp
   type typ
+  type encode_result = { coerced : bool; encoded : Sexplib.Sexp.t list option }
 
   val decls : Sexplib.Sexp.t list
+
+  val encode_with_diagnostics :
+    (string, typ) Hashtbl.t -> exp list -> encode_result
+
   val encode : (string, typ) Hashtbl.t -> exp list -> Sexplib.Sexp.t list option
 end
 
@@ -20,6 +25,7 @@ end
 module Make (C : Coerce) : S with type exp = C.exp and type typ = C.typ = struct
   type exp = C.exp
   type typ = C.typ
+  type encode_result = { coerced : bool; encoded : Sexplib.Sexp.t list option }
 
   let decls =
     let open Sexplib in
@@ -73,7 +79,7 @@ module Make (C : Coerce) : S with type exp = C.exp and type typ = C.typ = struct
         ];
     ]
 
-  let encode typingenv es : Sexplib.Sexp.t list option =
+  let encode_with_diagnostics typingenv es : encode_result =
     (* Try and coerce types in type env,  *)
     let lst =
       Hashtbl.fold
@@ -162,7 +168,10 @@ module Make (C : Coerce) : S with type exp = C.exp and type typ = C.typ = struct
                     [ Sexp.Atom "assert"; Term.to_sexp (Term.from_extracted t) ])
                 phis
             in
-            Some (decls @ phis)
-        | None -> None)
-    | _ -> None
+            { coerced = true; encoded = Some (decls @ phis) }
+        | None -> { coerced = true; encoded = None })
+    | _ -> { coerced = false; encoded = None }
+
+  let encode typingenv es : Sexplib.Sexp.t list option =
+    (encode_with_diagnostics typingenv es).encoded
 end

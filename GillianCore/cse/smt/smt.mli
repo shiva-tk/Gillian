@@ -3,8 +3,13 @@ open Syntax
 module type S = sig
   type exp
   type typ
+  type encode_result = { coerced : bool; encoded : Sexplib.Sexp.t list option }
 
   val decls : Sexplib.Sexp.t list
+
+  val encode_with_diagnostics :
+    (string, typ) Hashtbl.t -> exp list -> encode_result
+
   val encode : (string, typ) Hashtbl.t -> exp list -> Sexplib.Sexp.t list option
 end
 

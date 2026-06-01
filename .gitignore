@@ -74,6 +74,7 @@ gillian.esy.lock
 */environment
 *.env
 **/.gillian
+*_certified_smt_experiments.jsonl
 gillian_smt_queries
 *.deps
 *.i

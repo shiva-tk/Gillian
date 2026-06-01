@@ -962,6 +962,91 @@ module Dump = struct
           cmds)
 end
 
+module Certified_experiment = struct
+  let counter = ref 0
+  let session_id = Printf.sprintf "%.6f" (Unix.gettimeofday ())
+  let check_sat = Sexplib.Sexp.Atom "check-sat"
+
+  let result_to_string = function
+    | Sat -> "sat"
+    | Unsat -> "unsat"
+    | Unknown -> "unknown"
+
+  let ensure_dir path =
+    let rec aux path =
+      if String.equal path "" || Sys.file_exists path then ()
+      else (
+        aux (Filename.dirname path);
+        try Unix.mkdir path 0o755 with
+        | Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+        | e -> raise e)
+    in
+    aux path
+
+  let log_path () =
+    let path = Config.results_dir () ^ "_certified_smt_experiments.jsonl" in
+    ensure_dir (Filename.dirname path);
+    path
+
+  let json_of_result = function
+    | Some result -> `String (result_to_string result)
+    | None -> `Null
+
+  let json_of_time = function
+    | Some time -> `Float time
+    | None -> `Null
+
+  let json_of_query = function
+    | Some query -> sexps_to_yojson query
+    | None -> `Null
+
+  let backend_json ?coerced ?encoded ~result ~time ~query () =
+    let fields =
+      [
+        ("sat_result", json_of_result result);
+        ("time_seconds", json_of_time time);
+        ("smt_query", json_of_query query);
+      ]
+    in
+    let fields =
+      match encoded with
+      | Some encoded -> ("encoded", `Bool encoded) :: fields
+      | None -> fields
+    in
+    let fields =
+      match coerced with
+      | Some coerced -> ("coerced", `Bool coerced) :: fields
+      | None -> fields
+    in
+    `Assoc fields
+
+  let append json =
+    let oc =
+      open_out_gen [ Open_creat; Open_text; Open_append ] 0o666 (log_path ())
+    in
+    Fun.protect
+      ~finally:(fun () -> close_out oc)
+      (fun () -> Yojson.Safe.to_channel ~suf:"\n" oc json)
+
+  let record ~fs ~gamma ~unverified ~verified =
+    let query_id = !counter in
+    incr counter;
+    `Assoc
+      [
+        ("schema_version", `Int 1);
+        ("session_id", `String session_id);
+        ("query_id", `Int query_id);
+        ("timestamp", `Float (Unix.gettimeofday ()));
+        ("cwd", `String (Sys.getcwd ()));
+        ("argv", `List (Array.to_list Sys.argv |> List.map (fun s -> `String s)));
+        ("expressions", fs_to_yojson fs);
+        ("gamma", typenv_to_yojson gamma);
+        ("unverified", unverified);
+        ("verified", verified);
+      ]
+    |> append
+end
+
 let reset_solver ~use_certified () =
   cmd (pop 1);
   RepeatCache.clear ();
@@ -971,6 +1056,34 @@ let reset_solver ~use_certified () =
     let decls = List.rev !init_decls in
     decls |> List.iter cmd
 
+type smt_run = {
+  result : Simple_smt.result;
+  elapsed : float;
+  model : sexp option;
+}
+
+let query_of_assertions ~use_certified encoded_assertions =
+  let decls =
+    if use_certified then CertifiedSMT.Smt.decls else List.rev !init_decls
+  in
+  let builtins = if use_certified then [] else !builtin_funcs in
+  decls @ builtins @ encoded_assertions @ [ Certified_experiment.check_sat ]
+
+let run_encoded_assertions ~use_certified encoded_assertions =
+  let start = Unix.gettimeofday () in
+  let () = reset_solver ~use_certified () in
+  let () = if not use_certified then List.iter cmd !builtin_funcs in
+  let () = List.iter cmd encoded_assertions in
+  L.verbose (fun fmt -> fmt "Reached SMT.");
+  let result = check !solver in
+  let elapsed = Unix.gettimeofday () -. start in
+  let model =
+    match result with
+    | Sat -> Some (get_model !solver)
+    | Unsat | Unknown -> None
+  in
+  { result; elapsed; model }
+
 let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
   let () =
     L.verbose (fun m ->
@@ -978,36 +1091,61 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
           (Fmt.iter ~sep:(Fmt.any "@\n") Expr.Set.iter Expr.pp)
           fs pp_typenv gamma)
   in
-  let encoded_assertions, use_certified =
+  let encoded_assertions, run =
     if !Config.certified_smt then (
-      L.verbose (fun m -> m "Attempting to use certified SMT backend");
-      let encoded = CertifiedSMT.Smt.encode gamma (Expr.Set.to_list fs) in
-      match encoded with
-      | Some encoded -> (encoded, true)
-      | None ->
-          L.normal (fun m ->
-              m
-                "Failed to coerce expression or gamma, reverting to unverified \
-                 SMT backend.");
-          (encode_assertions fs gamma, false))
-    else (encode_assertions fs gamma, false)
+      L.verbose (fun m -> m "Comparing certified and unverified SMT backends");
+      let unverified_assertions = encode_assertions fs gamma in
+      let unverified_query =
+        query_of_assertions ~use_certified:false unverified_assertions
+      in
+      let unverified_run =
+        run_encoded_assertions ~use_certified:false unverified_assertions
+      in
+      let verified_encoding =
+        CertifiedSMT.Smt.encode_with_diagnostics gamma (Expr.Set.to_list fs)
+      in
+      let verified_query =
+        Option.map
+          (query_of_assertions ~use_certified:true)
+          verified_encoding.encoded
+      in
+      let verified_run =
+        Option.map
+          (run_encoded_assertions ~use_certified:true)
+          verified_encoding.encoded
+      in
+      let unverified_json =
+        Certified_experiment.backend_json ~result:(Some unverified_run.result)
+          ~time:(Some unverified_run.elapsed) ~query:(Some unverified_query) ()
+      in
+      let verified_json =
+        Certified_experiment.backend_json ~coerced:verified_encoding.coerced
+          ~encoded:(Option.is_some verified_encoding.encoded)
+          ~result:(Option.map (fun run -> run.result) verified_run)
+          ~time:(Option.map (fun run -> run.elapsed) verified_run)
+          ~query:verified_query ()
+      in
+      Certified_experiment.record ~fs ~gamma ~unverified:unverified_json
+        ~verified:verified_json;
+      (unverified_assertions, unverified_run))
+    else
+      let encoded_assertions = encode_assertions fs gamma in
+      let run =
+        run_encoded_assertions ~use_certified:false encoded_assertions
+      in
+      (encoded_assertions, run)
   in
-  let () = reset_solver ~use_certified () in
   let () = if !Config.dump_smt then Dump.dump fs gamma encoded_assertions in
-  let () = if not use_certified then List.iter cmd !builtin_funcs in
-  let () = List.iter cmd encoded_assertions in
-  L.verbose (fun fmt -> fmt "Reached SMT.");
-  let result = check !solver in
   L.verbose (fun m ->
       let r =
-        match result with
+        match run.result with
         | Sat -> "satisfiable"
         | Unsat -> "unsatisfiable"
         | Unknown -> "unknown"
       in
       m "The solver returned: %s" r);
   let ret =
-    match result with
+    match run.result with
     | Unknown ->
         if !Config.under_approximation then raise SMT_unknown
         else
@@ -1021,7 +1159,7 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
           raise
             Gillian_result.Exc.(
               internal_error ~additional_data "SMT returned unknown")
-    | Sat -> Some (get_model !solver)
+    | Sat -> run.model
     | Unsat -> None
   in
   ret
