@@ -3197,6 +3197,11 @@ let gset_to_gmap_with eqDecision0 h eqDecision1 h0 f_key f_val x =
 
 type preval =
   | PVNull
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | PVNone (* GIL differentiates between Null values, *)
+  | PVEmpty (* Empty values and None values. *)
+  | PVLoc of int
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | PVBool of bool
   | PVNat of int
   | PVRat of qp
@@ -3207,6 +3212,11 @@ type preval =
 type type0 =
   | TVal
   | TNull
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | TNone
+  | TEmpty
+  | TLoc
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | TBool
   | TNat
   | TRat
@@ -4000,32 +4010,49 @@ let f_to_real = [ 't'; 'o'; '_'; 'r'; 'e'; 'a'; 'l' ]
 
 (** val f_int_literal : z -> char list **)
 
+(* !!!!!!!!!! UNVERIFIED CHANGE !!!!!!!!!! *)
 let f_int_literal i = pretty0 pretty_Z i
+(* !!!!!!!!!! UNVERIFIED CHANGE !!!!!!!!!! *)
 
 (** val f_decimal_literal : qc -> char list **)
 
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+let decimal_n_is_zero n0 = decide (decide_rel Coq_N.eq_dec n0 N0)
+
+let decimal_z_abs = function
+  | Z0 -> N0
+  | Zpos p -> Npos p
+  | Zneg p -> Npos p
+
+let decimal_n_times_ten n0 =
+  N.add (N.double (N.double (N.double n0))) (N.double n0)
+
+let rec decimal_fraction_digits den rem =
+  if decimal_n_is_zero rem then []
+  else
+    let rem10 = decimal_n_times_ten rem in
+    let digit, rem' = N.div_eucl rem10 den in
+    pretty_N_char digit :: decimal_fraction_digits den rem'
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+(* !!!!!!!!!! UNVERIFIED CHANGE !!!!!!!!!! *)
 let f_decimal_literal q0 =
-  append
-    [
-      'd';
-      'e';
-      'c';
-      'i';
-      'm';
-      'a';
-      'l';
-      '_';
-      'l';
-      'i';
-      't';
-      'e';
-      'r';
-      'a';
-      'l';
-      '_';
-    ]
-    (append (pretty0 pretty_Z q0.qnum)
-       (append ('/' :: []) (pretty0 pretty_positive q0.qden)))
+  let den = Npos q0.qden in
+  let num = decimal_z_abs q0.qnum in
+  let int_part, rem = N.div_eucl num den in
+  let unsigned =
+    append
+      (pretty0 pretty_N int_part)
+      ('.'
+      ::
+      (match decimal_fraction_digits den rem with
+      | [] -> [ '0' ]
+      | digits -> digits))
+  in
+  match q0.qnum with
+  | Zneg _ when not (decimal_n_is_zero num) -> '-' :: unsigned
+  | _ -> unsigned
+(* !!!!!!!!!! UNVERIFIED CHANGE !!!!!!!!!! *)
 
 (** val minus_ : term -> term -> term **)
 
@@ -4288,6 +4315,14 @@ let lfunc_pre_ f ts = TApp (f_lfunc_pre f, ts)
 
 let c_null_val = [ 'n'; 'u'; 'l'; 'l' ]
 
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let c_none_val = [ 'n'; 'o'; 'n'; 'e' ]
+let c_empty_val = [ 'e'; 'm'; 'p'; 't'; 'y' ]
+let c_loc_val = [ 'l'; 'o'; 'c' ]
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
+
 (** val c_bool_val : char list **)
 
 let c_bool_val = [ 'b'; 'o'; 'o'; 'l' ]
@@ -4315,6 +4350,14 @@ let c_adt_val _UU03b4_ = append [ 'a'; 'd'; 't' ] _UU03b4_
 (** val null_val : term **)
 
 let null_val = TApp (c_null_val, [])
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let none_val = TApp (c_none_val, [])
+let empty_val = TApp (c_empty_val, [])
+let loc_val t = TApp (c_loc_val, t :: [])
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 
 (** val bool_val : term -> term **)
 
@@ -4382,6 +4425,12 @@ let constructors_for_adt_sort_map =
 
 let g_bool_val = [ 'g'; 'e'; 't'; 'B'; 'o'; 'o'; 'l' ]
 
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let g_loc_val = [ 'g'; 'e'; 't'; 'L'; 'o'; 'c' ]
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
 (** val g_nat_val : char list **)
 
 let g_nat_val = [ 'g'; 'e'; 't'; 'N'; 'a'; 't' ]
@@ -4441,6 +4490,14 @@ let get_constructor_adt c i t = TApp (g_constructor_adt c i, t :: [])
 
 let p_null_val = append [ 'i'; 's'; '-' ] c_null_val
 
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let p_none_val = append [ 'i'; 's'; '-' ] c_none_val
+let p_empty_val = append [ 'i'; 's'; '-' ] c_empty_val
+let p_loc_val = append [ 'i'; 's'; '-' ] c_loc_val
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
+
 (** val p_bool_val : char list **)
 
 let p_bool_val = append [ 'i'; 's'; '-' ] c_bool_val
@@ -4468,6 +4525,14 @@ let p_adt_val _UU03b4_ = append [ 'i'; 's'; '-' ] (c_adt_val _UU03b4_)
 (** val is_null_val : term -> term **)
 
 let is_null_val t = TApp (p_null_val, t :: [])
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let is_none_val t = TApp (p_none_val, t :: [])
+let is_empty_val t = TApp (p_empty_val, t :: [])
+let is_loc_val t = TApp (p_loc_val, t :: [])
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 
 (** val is_bool_val : term -> term **)
 
@@ -4499,6 +4564,11 @@ let rec is_type _UU03c4_ t =
   match _UU03c4_ with
   | TVal -> true_
   | TNull -> is_null_val t
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | TNone -> is_none_val t
+  | TEmpty -> is_empty_val t
+  | TLoc -> is_loc_val t
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | TBool -> is_bool_val t
   | TNat -> is_nat_val t
   | TRat -> is_rat_val t
@@ -4664,6 +4734,67 @@ let to_null = function
       in
       lookup0 (gmap_lookup sort_eq_decision sort_countable) _UU03c3_ cases
 
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+
+let to_none = function
+  | p, _UU03a6_ ->
+      let t, _UU03c3_ = p in
+      let cases =
+        singletonM0
+          (map_singleton
+             (gmap_partial_alter sort_eq_decision sort_countable)
+             (gmap_empty sort_eq_decision sort_countable))
+          _UU03c3__val
+          ( (t, _UU03c3__val),
+            union0
+              (gset_union term_eq_decision term_countable)
+              _UU03a6_
+              (singleton0
+                 (gset_singleton term_eq_decision term_countable)
+                 (is_none_val t)) )
+      in
+      lookup0 (gmap_lookup sort_eq_decision sort_countable) _UU03c3_ cases
+
+let to_empty = function
+  | p, _UU03a6_ ->
+      let t, _UU03c3_ = p in
+      let cases =
+        singletonM0
+          (map_singleton
+             (gmap_partial_alter sort_eq_decision sort_countable)
+             (gmap_empty sort_eq_decision sort_countable))
+          _UU03c3__val
+          ( (t, _UU03c3__val),
+            union0
+              (gset_union term_eq_decision term_countable)
+              _UU03a6_
+              (singleton0
+                 (gset_singleton term_eq_decision term_countable)
+                 (is_empty_val t)) )
+      in
+      lookup0 (gmap_lookup sort_eq_decision sort_countable) _UU03c3_ cases
+
+let to_loc = function
+  | p, _UU03a6_ ->
+      let t, _UU03c3_ = p in
+      let cases =
+        singletonM0
+          (map_singleton
+             (gmap_partial_alter sort_eq_decision sort_countable)
+             (gmap_empty sort_eq_decision sort_countable))
+          _UU03c3__val
+          ( (t, _UU03c3__val),
+            union0
+              (gset_union term_eq_decision term_countable)
+              _UU03a6_
+              (singleton0
+                 (gset_singleton term_eq_decision term_countable)
+                 (is_loc_val t)) )
+      in
+      lookup0 (gmap_lookup sort_eq_decision sort_countable) _UU03c3_ cases
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
+
 (** val to_bool : ((term * sort) * term gset) -> ((term * sort) * term gset)
     option **)
 
@@ -4801,6 +4932,11 @@ let rec to_type_curried _UU03c4_ t _UU03c3_ _UU03a6_ =
   match _UU03c4_ with
   | TVal -> to_val ((t, _UU03c3_), _UU03a6_)
   | TNull -> to_null ((t, _UU03c3_), _UU03a6_)
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | TNone -> to_none ((t, _UU03c3_), _UU03a6_)
+  | TEmpty -> to_empty ((t, _UU03c3_), _UU03a6_)
+  | TLoc -> to_loc ((t, _UU03c3_), _UU03a6_)
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | TBool -> to_bool ((t, _UU03c3_), _UU03a6_)
   | TNat -> to_nat0 ((t, _UU03c3_), _UU03a6_)
   | TRat -> to_rat ((t, _UU03c3_), _UU03a6_)
@@ -4915,6 +5051,20 @@ let rec encode_preval = function
       Some
         ( (null_val, _UU03c3__val),
           empty0 (gset_empty term_eq_decision term_countable) )
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | PVNone ->
+      Some
+        ( (none_val, _UU03c3__val),
+          empty0 (gset_empty term_eq_decision term_countable) )
+  | PVEmpty ->
+      Some
+        ( (empty_val, _UU03c3__val),
+          empty0 (gset_empty term_eq_decision term_countable) )
+  | PVLoc i ->
+      Some
+        ( (loc_val (int_literal (Z.of_nat i)), _UU03c3__val),
+          empty0 (gset_empty term_eq_decision term_countable) )
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | PVBool b ->
       Some
         ( (bool_ b, _UU03c3__bool),

@@ -599,6 +599,11 @@ val gset_to_gmap_with :
 
 type preval =
   | PVNull
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | PVNone (* GIL differentiates between Null values, *)
+  | PVEmpty (* Empty values and None values. *)
+  | PVLoc of int (* GIL abstract location, represented by some int ID  *)
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | PVBool of bool
   | PVNat of int
   | PVRat of qp
@@ -609,6 +614,11 @@ type preval =
 type type0 =
   | TVal
   | TNull
+  (* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+  | TNone
+  | TEmpty
+  | TLoc (* Type of GIL abstract location *)
+  (* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
   | TBool
   | TNat
   | TRat
@@ -815,6 +825,13 @@ val f_lfunc_pre : char list -> char list
 val lfunc_ : char list -> term list -> term
 val lfunc_pre_ : char list -> term list -> term
 val c_null_val : char list
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val c_none_val : char list
+val c_empty_val : char list
+val c_loc_val : char list
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val c_bool_val : char list
 val c_nat_val : char list
 val c_rat_val : char list
@@ -822,6 +839,13 @@ val c_string_val : char list
 val c_list_val : char list
 val c_adt_val : char list -> char list
 val null_val : term
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val none_val : term
+val empty_val : term
+val loc_val : term -> term
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val bool_val : term -> term
 val nat_val : term -> term
 val rat_val : term -> term
@@ -831,6 +855,11 @@ val adt_val : char list -> term -> term
 val c_constructor_adt : char list -> char list
 val constructor_adt : char list -> term list -> term
 val constructors_for_adt_sort_map : (char list, char list gset) gmap
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val g_loc_val : char list
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val g_bool_val : char list
 val g_nat_val : char list
 val g_rat_val : char list
@@ -846,6 +875,13 @@ val get_adt_val : char list -> term -> term
 val g_constructor_adt : char list -> int -> char list
 val get_constructor_adt : char list -> int -> term -> term
 val p_null_val : char list
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val p_none_val : char list
+val p_empty_val : char list
+val p_loc_val : char list
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val p_bool_val : char list
 val p_nat_val : char list
 val p_rat_val : char list
@@ -853,6 +889,13 @@ val p_string_val : char list
 val p_list_val : char list
 val p_adt_val : char list -> char list
 val is_null_val : term -> term
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val is_none_val : term -> term
+val is_empty_val : term -> term
+val is_loc_val : term -> term
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val is_bool_val : term -> term
 val is_nat_val : term -> term
 val is_rat_val : term -> term
@@ -872,6 +915,13 @@ val to_val_curried :
 
 val to_val : (term * sort) * term gset -> ((term * sort) * term gset) option
 val to_null : (term * sort) * term gset -> ((term * sort) * term gset) option
+
+(* !!!!!!!!!! UNVERIFIED ADDITION !!!!!!!!!! *)
+val to_none : (term * sort) * term gset -> ((term * sort) * term gset) option
+val to_empty : (term * sort) * term gset -> ((term * sort) * term gset) option
+val to_loc : (term * sort) * term gset -> ((term * sort) * term gset) option
+
+(* !!!!!!!!!! END UNVERIFIED ADDITION !!!!!!!!!! *)
 val to_bool : (term * sort) * term gset -> ((term * sort) * term gset) option
 val to_nat0 : (term * sort) * term gset -> ((term * sort) * term gset) option
 val to_rat : (term * sort) * term gset -> ((term * sort) * term gset) option

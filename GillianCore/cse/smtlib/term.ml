@@ -24,17 +24,17 @@ let rec from_extracted (t : Extracted.term) : t =
       Fun (Utils.string_from_char_list x, s', from_extracted t')
   | TExists (s, t) ->
       let s' = Sort.from_extracted s in
-      let x = Extracted.fresh_string_of_set [] (Extracted.fv t) in
+      let x = Extracted.fresh_string_of_set [ 'x' ] (Extracted.fv t) in
       let t' = Extracted.term_open 0 [ Extracted.TFVar x ] t in
       Exists (Utils.string_from_char_list x, s', from_extracted t')
   | TForall (s, t) ->
       let s' = Sort.from_extracted s in
-      let x = Extracted.fresh_string_of_set [] (Extracted.fv t) in
+      let x = Extracted.fresh_string_of_set [ 'x' ] (Extracted.fv t) in
       let t' = Extracted.term_open 0 [ Extracted.TFVar x ] t in
       Forall (Utils.string_from_char_list x, s', from_extracted t')
   | TLet (ts, t) ->
       let xs =
-        Extracted.fresh_strings_of_set [] (List.length ts) (Extracted.fv t)
+        Extracted.fresh_strings_of_set [ 'x' ] (List.length ts) (Extracted.fv t)
       in
       let xts =
         List.map2
@@ -56,7 +56,7 @@ let rec from_extracted (t : Extracted.term) : t =
                   ([ x ], Pattern.Var (Utils.string_from_char_list x))
               | Extracted.PApp (c, n) ->
                   let xs =
-                    Extracted.fresh_strings_of_set [] n (Extracted.fv t)
+                    Extracted.fresh_strings_of_set [ 'x' ] n (Extracted.fv t)
                   in
                   ( xs,
                     Pattern.App

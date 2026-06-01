@@ -32,6 +32,13 @@ module Make (C : Coerce) : S with type exp = C.exp and type typ = C.typ = struct
           Sexp.List
             [
               Sexp.List [ atom Extracted.c_null_val ];
+              Sexp.List [ atom Extracted.c_none_val ];
+              Sexp.List [ atom Extracted.c_empty_val ];
+              Sexp.List
+                [
+                  atom Extracted.c_loc_val;
+                  Sexp.List [ atom Extracted.g_loc_val; atom Extracted.s_int ];
+                ];
               Sexp.List
                 [
                   atom Extracted.c_bool_val;

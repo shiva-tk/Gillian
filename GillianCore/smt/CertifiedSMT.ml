@@ -4,25 +4,31 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
   type exp = Expr.t
   type typ = Type.t
 
-  let print_failed kind value =
-    Printf.printf "Failed to coerce %s %s\n%!" kind value
-
   let coerce_type (t : Type.t) : Cse.Type.t option =
     match t with
     | Type.NullType -> Some Cse.Type.Null
+    | Type.NoneType -> Some Cse.Type.None
+    | Type.EmptyType -> Some Cse.Type.Empty
     | Type.BooleanType -> Some Cse.Type.Bool
     | Type.IntType -> Some Cse.Type.Nat
+    | Type.NumberType -> Some Cse.Type.Rat
     | Type.StringType -> Some Cse.Type.String
     | Type.ListType -> Some (Cse.Type.List Cse.Type.Val)
-    | _ ->
-        print_failed "type" (Type.str t);
-        None
+    | Type.ObjectType -> Some (Cse.Type.List Cse.Type.Loc)
+    | _ -> None
 
   let rec coerce_val (v : Literal.t) : Cse.Val.t option =
     match v with
     | Null -> Some Cse.Val.Null
+    | Nono -> Some Cse.Val.None
+    | Empty -> Some Cse.Val.Empty
+    | Loc l -> Some (Cse.Val.Loc (Hashtbl.hash l))
     | Bool b -> Some (Cse.Val.Bool b)
     | Int i -> Some (Cse.Val.Nat (Z.to_int i))
+    | Num n -> (
+        match Float.classify_float n with
+        | FP_nan | FP_infinite -> None
+        | FP_zero | FP_subnormal | FP_normal -> Some (Cse.Val.Rat n))
     | String s -> Some (Cse.Val.String s)
     | LList vs -> (
         let vs =
@@ -35,20 +41,14 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
         in
         match vs with
         | Some vs -> Some (Cse.Val.List vs)
-        | None ->
-            print_failed "value" (Format.asprintf "%a" Literal.pp v);
-            None)
-    | _ ->
-        print_failed "value" (Format.asprintf "%a" Literal.pp v);
-        None
+        | None -> None)
+    | _ -> None
 
   let coerce_unop (op : UnOp.t) : Cse.Unop.t option =
     match op with
     | Not -> Some Cse.Unop.Not
     | LstLen -> Some Cse.Unop.Length
-    | _ ->
-        print_failed "unary operator" (UnOp.str op);
-        None
+    | _ -> None
 
   let coerce_binop (op : BinOp.t) : Cse.Binop.t option =
     match op with
@@ -58,6 +58,11 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
     | IMinus -> Some Cse.Binop.Sub
     | IDiv -> Some Cse.Binop.Div
     | IMod -> Some Cse.Binop.Mod
+    | FPlus -> Some Cse.Binop.RAdd
+    | FMinus -> Some Cse.Binop.RSub
+    | FDiv -> Some Cse.Binop.RDiv
+    | FLessThan -> Some Cse.Binop.RLt
+    | FLessThanEqual -> Some Cse.Binop.RLe
     (* Boolean *)
     | And -> Some Cse.Binop.And
     | _ -> None
@@ -66,16 +71,31 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
     match e with
     | Lit v -> Option.map (fun v -> Cse.Symbexp.Val v) (coerce_val v)
     | LVar x -> Some (Cse.Symbexp.LVar x)
+    | ALoc l -> Some (Cse.Symbexp.LVar l)
     | UnOp (op, e) -> (
-        match (coerce_unop op, coerce_symbexp e) with
-        | Some op, Some e -> Some (Cse.Symbexp.Unop (op, e))
-        | _ -> None)
+        match op with
+        | FUnaryMinus ->
+            Option.map
+              (fun e ->
+                Cse.Symbexp.Binop
+                  (Cse.Symbexp.Val (Cse.Val.Rat 0.), Cse.Binop.RSub, e))
+              (coerce_symbexp e)
+        | IUnaryMinus ->
+            Option.map
+              (fun e ->
+                Cse.Symbexp.Binop
+                  (Cse.Symbexp.Val (Cse.Val.Nat 0), Cse.Binop.Sub, e))
+              (coerce_symbexp e)
+        | _ -> (
+            match (coerce_unop op, coerce_symbexp e) with
+            | Some op, Some e -> Some (Cse.Symbexp.Unop (op, e))
+            | _ -> None))
     | BinOp (UnOp (TypeOf, e1), Equal, Lit (Type t)) -> (
         match (coerce_symbexp e1, coerce_type t) with
         | Some e1', Some t' -> Some (Cse.Symbexp.In (e1', t'))
         | _ -> None)
     | BinOp (e1, op, e2) -> (
-        match (coerce_symbexp e2, coerce_binop op, coerce_symbexp e1) with
+        match (coerce_symbexp e1, coerce_binop op, coerce_symbexp e2) with
         | Some e1, Some op, Some e2 -> Some (Cse.Symbexp.Binop (e1, op, e2))
         | Some e1', None, Some e2' -> (
             match op with
@@ -99,13 +119,8 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
                 in
                 match coerce_symbexp lowered with
                 | Some e -> Some e
-                | None ->
-                    print_failed "symbolic expression"
-                      (Format.asprintf "%a" Expr.pp e);
-                    None)
-            | _ ->
-                print_failed "binary operator" (BinOp.str op);
-                None)
+                | None -> None)
+            | _ -> None)
         | _ -> None)
     | EList es ->
         let es =
@@ -117,9 +132,7 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
             es (Some [])
         in
         Option.map (fun es -> Cse.Symbexp.List es) es
-    | _ ->
-        print_failed "symbolic expression" (Format.asprintf "%a" Expr.pp e);
-        None
+    | _ -> None
 end
 
 module Smt = Cse.Smt.Make (C)
