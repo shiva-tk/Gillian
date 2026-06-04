@@ -984,7 +984,9 @@ module Certified_experiment = struct
     aux path
 
   let log_path () =
-    let path = Config.results_dir () ^ "_certified_smt_experiments.jsonl" in
+    let path =
+      Filename.concat (Sys.getcwd ()) "experiments/certified-smt.jsonl"
+    in
     ensure_dir (Filename.dirname path);
     path
 
