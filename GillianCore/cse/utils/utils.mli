@@ -1,6 +1,15 @@
 val string_to_char_list : string -> char list
+
 val string_from_char_list : char list -> string
+
+val string_from_index : Extracted.index -> string
+
+val string_from_identifier : Extracted.identifier -> string
+
+val sexp_of_index : Extracted.index -> Sexplib.Sexp.t
+
+val sexp_of_identifier : Extracted.identifier -> Sexplib.Sexp.t
+
 val list_to_gmap_string : (string * 'a) list -> (char list, 'a) Extracted.gmap
 
-val hashtbl_to_gmap_string :
-  (string, 'a) Hashtbl.t -> (char list, 'a) Extracted.gmap
+val hashtbl_to_gmap_string : (string, 'a) Hashtbl.t -> (char list, 'a) Extracted.gmap

@@ -1,15 +1,15 @@
 open Extraction_utils
 
 type t =
-  | Null
-  | None
-  | Empty
-  | Loc of int
-  | Bool of bool
-  | Nat of int
-  | Rat of float
-  | String of string
-  | List of t list
+| Null
+| None
+| Empty
+| Loc of int
+| Bool of bool
+| Nat of int
+| Rat of float
+| String of string
+| List of t list
 
 let rec positive_of_z z =
   if Z.equal z Z.one then Extracted.XH
@@ -33,12 +33,11 @@ let q_of_float f =
       Extracted.q2Qc
         { qnum = z_of_zarith (Q.num q); qden = positive_of_z (Q.den q) }
 
-let rec to_extracted (v : t) =
-  match v with
+let rec to_extracted (v : t) = match v with
   | Null -> Extracted.PVNull
-  | None -> Extracted.PVNone
-  | Empty -> Extracted.PVEmpty
-  | Loc i -> Extracted.PVLoc i
+  | None -> Extracted.PVGillianNone
+  | Empty -> Extracted.PVGillianEmpty
+  | Loc i -> Extracted.PVGillianLoc i
   | Bool b -> Extracted.PVBool b
   | Nat n -> Extracted.PVNat n
   | Rat r -> Extracted.PVRat (q_of_float r)

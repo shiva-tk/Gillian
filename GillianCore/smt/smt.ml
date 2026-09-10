@@ -1005,7 +1005,21 @@ module Certified_experiment = struct
     | Some query -> sexps_to_yojson query
     | None -> `Null
 
-  let backend_json ?coerced ?encoded ~result ~time ~query () =
+  let json_of_diagnostic diagnostic =
+    `Assoc (List.map (fun (key, value) -> (key, `String value)) diagnostic)
+
+  let json_of_diagnostics diagnostics =
+    `List (List.map json_of_diagnostic diagnostics)
+
+  let backend_json
+      ?coerced
+      ?encoded
+      ?coercion_failures
+      ?encoding_failures
+      ~result
+      ~time
+      ~query
+      () =
     let fields =
       [
         ("sat_result", json_of_result result);
@@ -1023,6 +1037,18 @@ module Certified_experiment = struct
       | Some coerced -> ("coerced", `Bool coerced) :: fields
       | None -> fields
     in
+    let fields =
+      match encoding_failures with
+      | Some encoding_failures ->
+          ("encoding_failures", json_of_diagnostics encoding_failures) :: fields
+      | None -> fields
+    in
+    let fields =
+      match coercion_failures with
+      | Some coercion_failures ->
+          ("coercion_failures", json_of_diagnostics coercion_failures) :: fields
+      | None -> fields
+    in
     `Assoc fields
 
   let append json =
@@ -1038,7 +1064,7 @@ module Certified_experiment = struct
     incr counter;
     `Assoc
       [
-        ("schema_version", `Int 1);
+        ("schema_version", `Int 2);
         ("session_id", `String session_id);
         ("query_id", `Int query_id);
         ("timestamp", `Float (Unix.gettimeofday ()));
@@ -1075,11 +1101,11 @@ let query_of_assertions ~use_certified encoded_assertions =
   decls @ builtins @ encoded_assertions @ [ Certified_experiment.check_sat ]
 
 let run_encoded_assertions ~use_certified encoded_assertions =
-  let start = Unix.gettimeofday () in
   let () = reset_solver ~use_certified () in
   let () = if not use_certified then List.iter cmd !builtin_funcs in
   let () = List.iter cmd encoded_assertions in
   L.verbose (fun fmt -> fmt "Reached SMT.");
+  let start = Unix.gettimeofday () in
   let result = check !solver in
   let elapsed = Unix.gettimeofday () -. start in
   let model =
@@ -1126,6 +1152,8 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
       let verified_json =
         Certified_experiment.backend_json ~coerced:verified_encoding.coerced
           ~encoded:(Option.is_some verified_encoding.encoded)
+          ~coercion_failures:verified_encoding.coercion_failures
+          ~encoding_failures:verified_encoding.encoding_failures
           ~result:(Option.map (fun run -> run.result) verified_run)
           ~time:(Option.map (fun run -> run.elapsed) verified_run)
           ~query:verified_query ()

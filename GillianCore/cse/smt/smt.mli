@@ -3,7 +3,16 @@ open Syntax
 module type S = sig
   type exp
   type typ
-  type encode_result = { coerced : bool; encoded : Sexplib.Sexp.t list option }
+  (* A failure explanation: ordered key/value fields, so a caller can render or
+     serialise it without this library committing to a format. *)
+  type diagnostic = (string * string) list
+
+  type encode_result = {
+    coerced : bool;
+    encoded : Sexplib.Sexp.t list option;
+    coercion_failures : diagnostic list;
+    encoding_failures : diagnostic list;
+  }
 
   val decls : Sexplib.Sexp.t list
 
@@ -19,7 +28,15 @@ module type Coerce = sig
 
   val coerce_symbexp : exp -> Symbexp.t option
   val coerce_type : typ -> Type.t option
+
+  (* Rendering and explanation, used only to build diagnostics. A [diagnose_*]
+     returns [None] exactly when the corresponding [coerce_*] succeeds. *)
+  val string_of_symbexp : exp -> string
+  val string_of_type : typ -> string
+  val diagnose_symbexp : exp -> string option
+  val diagnose_type : typ -> string option
 end
 
-module Make : functor (C : Coerce) ->
-  S with type exp = C.exp and type typ = C.typ
+module Make : functor (C : Coerce) -> S
+  with type exp = C.exp
+   and type typ = C.typ

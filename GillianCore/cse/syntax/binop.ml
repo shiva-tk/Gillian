@@ -1,21 +1,20 @@
 type t =
-  | Eq
-  | And
-  | Add
-  | Sub
-  | Div
-  | Mod
-  | Lt
-  | Cons
-  | In
-  | RAdd
-  | RSub
-  | RDiv
-  | RLt
-  | RLe
+| Eq
+| And
+| Add
+| Sub
+| Div
+| Mod
+| Lt
+| Cons
+| In
+| RAdd
+| RSub
+| RDiv
+| RLt
+| RLe
 
-let to_extracted op =
-  match op with
+let to_extracted op = match op with
   | Eq -> Extracted.Op2Eq
   | And -> Extracted.Op2And
   | Add -> Extracted.Op2Add
