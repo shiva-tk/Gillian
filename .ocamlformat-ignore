@@ -1,0 +1,5 @@
+# GillianCore/cse is a vendored copy of CSE's lib/ (see scripts/vendor-cse).
+# It keeps CSE's formatting verbatim, so that a re-vendor diff shows only real
+# changes and the anchors in scripts/vendor-cse/local_additions.py keep
+# matching. Formatting it here would fight the next re-vendor.
+GillianCore/cse/**

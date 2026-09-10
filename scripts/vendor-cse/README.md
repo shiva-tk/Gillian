@@ -1,0 +1,91 @@
+# Re-vendoring CSE
+
+CSE (`~/dev/CSE`) is the source of truth for the verified SMT encoder.
+`GillianCore/cse/` is a vendored copy of its `lib/`, plus a small set of
+Gillian-specific additions that deliberately do **not** live in CSE.
+
+```sh
+scripts/vendor-cse/vendor.sh [path-to-CSE]   # default ~/dev/CSE
+dune build @check
+git diff --stat GillianCore/cse
+```
+
+`vendor.sh` copies CSE's hand-written libraries and its *generated* extraction,
+then runs `local_additions.py` to re-apply Gillian's additions.
+
+## What is local to Gillian, and why
+
+GIL has four values with no counterpart in CSE's verified value language:
+`none`, `empty`, and object locations (`loc`). Gillian adds them as
+constructors of the SMT `Val` datatype, with the matching type tests and
+coercions:
+
+| Where | Addition |
+| --- | --- |
+| `extracted/extracted.{ml,mli}` | `PVGillian*` / `TGillian*` constructors, the `c_/g_/p_/is_/to_gillian_*` helpers, and the corresponding arms of `encode_type`, `is_type`, `to_type_curried` and `encode_preval` |
+| `syntax/type.{ml,mli}`, `syntax/val.{ml,mli}` | the `None` / `Empty` / `Loc` constructors and their `to_extracted` arms |
+| `smt/smt.ml` | the three `declare-datatype` entries that announce them to the solver |
+
+These are additions to *extracted* code, so they cannot be source edits in CSE
+and extraction will never regenerate them. That is why they are re-applied by a
+script rather than merged by hand: doing it by hand once per re-vendor is how
+they drift.
+
+Two further differences are pure build wiring, and are **not** additions:
+
+- CSE builds its utility library as `utils` (module `Utils`). Gillian must
+  rename it to `extraction_utils`, because `GillianCore/utils` already claims
+  `utils`; dune then wraps it as `Extraction_utils.Utils`. `local_additions.py`
+  prepends `open Extraction_utils` to every copied `.ml` that refers to
+  `Utils.`, which restores the prefix the copied sources use.
+- The `dune` files here differ from CSE's (different library and public names,
+  and the extraction is checked in rather than produced by a rocq rule).
+  `vendor.sh` never copies a `dune` file.
+
+## How the additions are anchored
+
+Every Gillian value added here is a sibling of `null`, so every edit is
+anchored on the corresponding `null` declaration — `let c_null_val =`,
+`| TNull -> is_null_val t`, and so on. Those names are stable across CSE
+releases, which makes the edits robust to unrelated churn in the generated
+code.
+
+An anchor that does not match **exactly once** is a hard error: the tool
+refuses to guess, and refuses to run at all on a file that already contains
+additions. After applying, it checks that every expected identifier is present.
+So a re-vendor either lands completely or fails loudly; it never
+half-applies.
+
+If CSE moves an anchor, the fix is to re-roll that one edit: find the new
+sibling declaration, update the `anchor` field, and re-run.
+
+### The limit of that guarantee
+
+The post-conditions check that the additions *landed*, not that the code they
+call still *means* the same thing. `to_gillian_value` is a hand-written variant
+of the generated `to_null` — it maps into `Val` rather than unwrapping to
+`Null` — so if CSE changes the shape of its coercions, that payload has to be
+re-derived by hand. It will still compile. Re-run the experiments after a
+re-vendor; do not trust the build alone.
+
+## Formatting
+
+Vendored sources keep CSE's formatting verbatim, so that re-vendor diffs show
+only real changes. The tree is therefore not ocamlformat-clean (it already
+wasn't). If CI ever enforces `dune fmt` here, add `GillianCore/cse` to
+`.ocamlformat-ignore` rather than reformatting a vendored copy.
+
+## Numeric literals
+
+The encoder names integer and rational literals with prefixed function symbols
+(`int_literal_5`, `decimal_literal_3/2`) so that the metatheory can tell a
+literal apart from other function symbols by name. SMT-LIB has no such
+symbols, so CSE's printer (`lib/utils/utils.ml`, `sexp_of_identifier`) renders
+them as the literals themselves -- `5`, `(/ 3.0 2.0)` -- in the same layer that
+already prints a string literal's symbol as the quoted SMT text.
+
+That mapping is keyed on the two prefixes. If they ever change in
+`smt_theories/Theory/Reals_Ints.v`, the printer stops matching and the symbols
+reach the solver undeclared, which shows up as
+`(error "unknown constant int_literal_0")` rather than as a build failure.
+Re-run a benchmark after a re-vendor, not just `dune build`.
