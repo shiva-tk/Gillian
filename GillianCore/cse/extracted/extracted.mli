@@ -1,8 +1,6 @@
 
 type __ = Obj.t
 
-val negb : bool -> bool
-
 val option_map : ('a1 -> 'a2) -> 'a1 option -> 'a2 option
 
 type ('a, 'b) sum =
@@ -37,15 +35,6 @@ val compose : ('a2 -> 'a3) -> ('a1 -> 'a2) -> 'a1 -> 'a3
 
 module Nat :
  sig
-  val sub : int -> int -> int
-
-  val ltb : int -> int -> bool
-
-  val divmod : int -> int -> int -> int -> int * int
-
-  val div : int -> int -> int
-
-  val modulo : int -> int -> int
  end
 
 type positive =
@@ -64,34 +53,10 @@ type z =
 
 module Pos :
  sig
-  val succ : positive -> positive
-
-  val pred_double : positive -> positive
-
   type mask =
   | IsNul
   | IsPos of positive
   | IsNeg
-
-  val succ_double_mask : mask -> mask
-
-  val double_mask : mask -> mask
-
-  val double_pred_mask : positive -> mask
-
-  val sub_mask : positive -> positive -> mask
-
-  val sub_mask_carry : positive -> positive -> mask
-
-  val compare_cont : comparison -> positive -> positive -> comparison
-
-  val compare : positive -> positive -> comparison
-
-  val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1
-
-  val to_nat : positive -> int
-
-  val of_succ_nat : int -> positive
  end
 
 module Coq_Pos :
@@ -103,6 +68,8 @@ module Coq_Pos :
   val add_carry : positive -> positive -> positive
 
   val pred_double : positive -> positive
+
+  val pred : positive -> positive
 
   type mask = Pos.mask =
   | IsNul
@@ -121,19 +88,21 @@ module Coq_Pos :
 
   val sub : positive -> positive -> positive
 
-  val mul : positive -> positive -> positive
+  val size_nat : positive -> int
 
   val compare_cont : comparison -> positive -> positive -> comparison
 
   val compare : positive -> positive -> comparison
 
-  val pred : positive -> positive
-
-  val size_nat : positive -> int
-
   val ggcdn : int -> positive -> positive -> positive * (positive * positive)
 
   val ggcd : positive -> positive -> positive * (positive * positive)
+
+  val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1
+
+  val to_nat : positive -> int
+
+  val of_succ_nat : int -> positive
 
   val eq_dec : positive -> positive -> bool
  end
@@ -144,6 +113,8 @@ module N :
 
   val double : n -> n
 
+  val add : n -> n -> n
+
   val sub : n -> n -> n
 
   val compare : n -> n -> comparison
@@ -151,10 +122,6 @@ module N :
   val leb : n -> n -> bool
 
   val pos_div_eucl : positive -> n -> n * n
-
-  val add : n -> n -> n
-
-  val mul : n -> n -> n
 
   val div_eucl : n -> n -> n * n
 
@@ -169,33 +136,33 @@ module N :
   val eq_dec : n -> n -> bool
  end
 
-val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list
-
-val nth : int -> 'a1 list -> 'a1 -> 'a1
-
-val firstn : int -> 'a1 list -> 'a1 list
-
-val skipn : int -> 'a1 list -> 'a1 list
-
 val hd_error : 'a1 list -> 'a1 option
 
 val tl : 'a1 list -> 'a1 list
+
+val nth : int -> 'a1 list -> 'a1 -> 'a1
 
 val rev_append : 'a1 list -> 'a1 list -> 'a1 list
 
 val list_eq_dec : ('a1 -> 'a1 -> bool) -> 'a1 list -> 'a1 list -> bool
 
+val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list
+
 val fold_right : ('a2 -> 'a1 -> 'a1) -> 'a1 -> 'a2 list -> 'a1
+
+val firstn : int -> 'a1 list -> 'a1 list
+
+val skipn : int -> 'a1 list -> 'a1 list
 
 module Z :
  sig
-  val of_nat : int -> z
-
-  val to_pos : z -> positive
-
   val sgn : z -> z
 
   val abs : z -> z
+
+  val of_nat : int -> z
+
+  val to_pos : z -> positive
 
   val ggcd : z -> z -> z * (z * z)
  end
@@ -211,12 +178,6 @@ val ascii_of_pos : positive -> char
 val ascii_of_N : n -> char
 
 val ascii_of_nat : int -> char
-
-val n_of_digits : bool list -> n
-
-val n_of_ascii : char -> n
-
-val nat_of_ascii : char -> int
 
 val append : char list -> char list -> char list
 
@@ -388,41 +349,32 @@ module Coq_N :
 type qp = qc
   (* singleton inductive, whose constructor was mk_Qp *)
 
-module Coq_list :
- sig
-  val list_filter : ('a1 -> decision) -> 'a1 list -> 'a1 list
+val list_filter : ('a1 -> decision) -> 'a1 list -> 'a1 list
 
-  val reverse : 'a1 list -> 'a1 list
+val reverse0 : 'a1 list -> 'a1 list
 
-  val list_elem_of_dec : ('a1, 'a1) relDecision -> ('a1, 'a1 list) relDecision
+val elem_of_list_dec : ('a1, 'a1) relDecision -> ('a1, 'a1 list) relDecision
 
-  val list_eq_dec : ('a1, 'a1) relDecision -> ('a1 list, 'a1 list) relDecision
- end
+val list_eq_dec0 : ('a1, 'a1) relDecision -> ('a1 list, 'a1 list) relDecision
 
-module Coq0_list :
- sig
-  val list_fmap : (__ -> __) -> __ list -> __ list
+val list_fmap : (__ -> __) -> __ list -> __ list
 
-  val list_omap : (__ -> __ option) -> __ list -> __ list
+val list_omap : (__ -> __ option) -> __ list -> __ list
 
-  val list_bind : (__ -> __ list) -> __ list -> __ list
+val list_bind : (__ -> __ list) -> __ list -> __ list
 
-  val mapM : 'a1 mBind -> 'a1 mRet -> ('a2 -> 'a1) -> 'a2 list -> 'a1
- end
+val mapM : 'a1 mBind -> 'a1 mRet -> ('a2 -> 'a1) -> 'a2 list -> 'a1
 
-module Coq1_list :
- sig
-  val list_find : ('a1 -> decision) -> 'a1 list -> (int * 'a1) option
+val list_find : ('a1 -> decision) -> 'a1 list -> (int * 'a1) option
 
-  val positives_flatten_go : positive list -> positive -> positive
+val positives_flatten_go : positive list -> positive -> positive
 
-  val positives_flatten : positive list -> positive
+val positives_flatten : positive list -> positive
 
-  val positives_unflatten_go :
-    positive -> positive list -> positive -> positive list option
+val positives_unflatten_go :
+  positive -> positive list -> positive -> positive list option
 
-  val positives_unflatten : positive -> positive list option
- end
+val positives_unflatten : positive -> positive list option
 
 type 'a countable = { encode : ('a -> positive);
                       decode : (positive -> 'a option) }
@@ -522,6 +474,8 @@ val search_infinite : (int -> 'a1) -> ('a1, 'a1) relDecision -> 'a1 infinite
 
 val string_infinite : char list infinite
 
+val set_fold : ('a1, 'a2) elements -> ('a1 -> 'a3 -> 'a3) -> 'a3 -> 'a2 -> 'a3
+
 val set_filter :
   ('a1, 'a2) elements -> 'a2 empty -> ('a1, 'a2) singleton -> 'a2 union ->
   ('a1 -> decision) -> 'a2 -> 'a2
@@ -554,10 +508,6 @@ val map_to_list : ('a1, 'a2, 'a3) mapFold -> 'a3 -> ('a1 * 'a2) list
 val map_to_set :
   ('a1, 'a2, 'a3) mapFold -> ('a4, 'a5) singleton -> 'a5 empty -> 'a5 union
   -> ('a1 -> 'a2 -> 'a4) -> 'a3 -> 'a5
-
-val set_to_map :
-  ('a1, 'a2) elements -> ('a3, 'a4, 'a5) insert -> 'a5 empty -> ('a1 ->
-  'a3 * 'a4) -> 'a2 -> 'a5
 
 val map_union_with : 'a1 merge -> ('a2, 'a1) unionWith
 
@@ -833,9 +783,6 @@ val sexp_open : int -> sexp list -> sexp -> sexp
 
 val sexp_match_cases_has_patvar : (pattern * sexp) list -> bool
 
-val list_eq_dec_elem_of :
-  'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool
-
 type index =
 | IdxNum of int
 | IdxSym of char list
@@ -848,15 +795,20 @@ type identifier =
 | IdSym of char list
 | IdSymWithIndices of char list * index list
 
-val identifier_eq_decision : (identifier, identifier) relDecision
+val identifier_decision : (identifier, identifier) relDecision
 
 val identifier_countable : identifier countable
 
 val identifier_add_prefix : char list -> identifier -> identifier
 
+val s_bool : identifier
+
 type sort =
 | SParam of identifier
 | SApp of identifier * sort list
+
+val list_eq_dec_dep :
+  'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool
 
 val sort_eq_decision : (sort, sort) relDecision
 
@@ -865,8 +817,6 @@ val sort_to_gen_tree : sort -> identifier gen_tree
 val gen_tree_to_sort : identifier gen_tree -> sort option
 
 val sort_countable : sort countable
-
-val s_bool : identifier
 
 val _UU03c3__bool : sort
 
@@ -889,6 +839,9 @@ type term =
 | TForall of sort * term
 | TLet of term list * term
 | TMatch of term * (pattern0 * term) list
+
+val list_eq_dec_dep0 :
+  'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool
 
 val term_eq_decision : (term, term) relDecision
 
@@ -1003,14 +956,6 @@ val quote_char : char
 
 val quote_string : char list
 
-val hex_digit : int -> char
-
-val plain_char : int -> bool
-
-val escape_ascii : char -> char list
-
-val escape_string : char list -> char list
-
 val f_string_literal : char list -> char list
 
 val string_literal : char list -> term
@@ -1067,22 +1012,6 @@ val _UU03c3__list : sort
 
 val encode_type : type0 -> sort
 
-val f_repr_nat : identifier
-
-val f_repr_rat : identifier
-
-val f_repr_val : identifier
-
-val f_repr_adt : char list -> identifier
-
-val repr_nat : term -> term
-
-val repr_rat : term -> term
-
-val repr_val : term -> term
-
-val repr_adt : char list -> term -> term
-
 val f_lfunc : char list -> identifier
 
 val f_lfunc_pre : char list -> identifier
@@ -1092,8 +1021,6 @@ val lfunc_ : char list -> sort option -> term list -> term
 val lfunc_pre_ : char list -> sort option -> term list -> term
 
 val c_null : identifier
-
-val null : term
 
 val c_null_val : identifier
 
@@ -1114,6 +1041,10 @@ val c_string_val : identifier
 val c_list_val : identifier
 
 val c_adt_val : char list -> identifier
+
+val c_some_val : identifier
+
+val null : term
 
 val null_val_of : term -> term
 
@@ -1137,8 +1068,6 @@ val list_val : term -> term
 
 val adt_val : char list -> term -> term
 
-val c_some_val : identifier
-
 val c_constructor_adt : char list -> identifier
 
 val constructor_adt : char list -> sort option -> term list -> term
@@ -1161,6 +1090,8 @@ val g_list_val : identifier
 
 val g_adt_val : char list -> identifier
 
+val g_some_val : identifier
+
 val get_null_val : term -> term
 
 val get_bool_val : term -> term
@@ -1174,8 +1105,6 @@ val get_string_val : term -> term
 val get_list_val : term -> term
 
 val get_adt_val : char list -> term -> term
-
-val g_some_val : identifier
 
 val get_some_val : term -> term
 
@@ -1199,6 +1128,8 @@ val p_list_val : identifier
 
 val p_adt_val : char list -> identifier
 
+val p_some_val : identifier
+
 val is_null_val : term -> term
 
 val is_gillian_none_val : term -> term
@@ -1219,9 +1150,9 @@ val is_list_val : term -> term
 
 val is_adt_val : char list -> term -> term
 
-val p_some_val : identifier
-
 val is_some_val : term -> term
+
+val is_type : type0 -> term -> term
 
 val p_constructor_adt : char list -> identifier
 
@@ -1230,12 +1161,6 @@ val is_constructor_adt : char list -> term -> term
 val tester_for_constructor_adt_map : (identifier, identifier) gmap
 
 val lookup_tester_for_constructor_adt : identifier -> identifier gset
-
-val is_type : type0 -> term -> term
-
-val repr_list_body : (term -> term) -> term -> term
-
-val repr_type_guard : type0 -> term -> term
 
 val to_val_base :
   term -> sort -> term gset -> ((term * sort) * term gset) option

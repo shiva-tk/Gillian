@@ -69,10 +69,9 @@ let rec to_sexp t =
   match t with
   | Var x -> Sexp.Atom (sanitise_var x)
   | App (f, ts) ->
-    (* [List.is_empty] is OCaml 5.1; the project switch is 4.14. *)
-    (match ts with
-     | [] -> f
-     | _ -> Sexp.List (f :: (List.map to_sexp ts)))
+    if List.is_empty ts
+    then f
+    else Sexp.List (f :: (List.map to_sexp ts))
   | Fun (x, s, t) ->
      let binder = Sexp.List [Sexp.Atom (sanitise_var x); Sort.to_sexp s] in
      let binders = Sexp.List [binder] in

@@ -8,17 +8,6 @@ type t =
 | Binop of t * Binop.t * t
 | In of t * Type.t
 
-let lvars e =
-  let rec go acc e = match e with
-    | Val _ -> acc
-    | LVar x -> x :: acc
-    | List es -> List.fold_left go acc es
-    | Unop (_, e) -> go acc e
-    | Binop (e1, _, e2) -> go (go acc e1) e2
-    | In (e, _) -> go acc e
-  in
-  List.sort_uniq String.compare (go [] e)
-
 let rec to_extracted e = match e with
   | Val v -> Extracted.SEVal (Val.to_extracted v)
   | LVar x -> Extracted.SEFLVar (Utils.string_to_char_list x)

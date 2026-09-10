@@ -8,7 +8,4 @@ type t =
 | Binop of t * Binop.t * t
 | In of t * Type.t
 
-(* The logical variables the expression mentions, without duplicates. *)
-val lvars : t -> string list
-
 val to_extracted : t -> Extracted.sexp

@@ -2,12 +2,6 @@
 type __ = Obj.t
 let __ = let rec f _ = Obj.repr f in Obj.repr f
 
-(** val negb : bool -> bool **)
-
-let negb = function
-| true -> false
-| false -> true
-
 (** val option_map : ('a1 -> 'a2) -> 'a1 option -> 'a2 option **)
 
 let option_map f = function
@@ -75,50 +69,6 @@ let compose g f x =
 
 module Nat =
  struct
-  (** val sub : int -> int -> int **)
-
-  let rec sub n0 m =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> n0)
-      (fun k ->
-      (fun fO fS n -> if n=0 then fO () else fS (n-1))
-        (fun _ -> n0)
-        (fun l -> sub k l)
-        m)
-      n0
-
-  (** val ltb : int -> int -> bool **)
-
-  let ltb n0 m =
-    (<=) (Stdlib.Int.succ n0) m
-
-  (** val divmod : int -> int -> int -> int -> int * int **)
-
-  let rec divmod x y q0 u =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> (q0, u))
-      (fun x' ->
-      (fun fO fS n -> if n=0 then fO () else fS (n-1))
-        (fun _ -> divmod x' y (Stdlib.Int.succ q0) y)
-        (fun u' -> divmod x' y q0 u')
-        u)
-      x
-
-  (** val div : int -> int -> int **)
-
-  let div x y =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> y)
-      (fun y' -> fst (divmod x y' 0 y'))
-      y
-
-  (** val modulo : int -> int -> int **)
-
-  let modulo x y =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> x)
-      (fun y' -> sub y' (snd (divmod x y' 0 y')))
-      y
  end
 
 type positive =
@@ -137,122 +87,10 @@ type z =
 
 module Pos =
  struct
-  (** val succ : positive -> positive **)
-
-  let rec succ = function
-  | XI p -> XO (succ p)
-  | XO p -> XI p
-  | XH -> XO XH
-
-  (** val pred_double : positive -> positive **)
-
-  let rec pred_double = function
-  | XI p -> XI (XO p)
-  | XO p -> XI (pred_double p)
-  | XH -> XH
-
   type mask =
   | IsNul
   | IsPos of positive
   | IsNeg
-
-  (** val succ_double_mask : mask -> mask **)
-
-  let succ_double_mask = function
-  | IsNul -> IsPos XH
-  | IsPos p -> IsPos (XI p)
-  | IsNeg -> IsNeg
-
-  (** val double_mask : mask -> mask **)
-
-  let double_mask = function
-  | IsPos p -> IsPos (XO p)
-  | x0 -> x0
-
-  (** val double_pred_mask : positive -> mask **)
-
-  let double_pred_mask = function
-  | XI p -> IsPos (XO (XO p))
-  | XO p -> IsPos (XO (pred_double p))
-  | XH -> IsNul
-
-  (** val sub_mask : positive -> positive -> mask **)
-
-  let rec sub_mask x y =
-    match x with
-    | XI p ->
-      (match y with
-       | XI q0 -> double_mask (sub_mask p q0)
-       | XO q0 -> succ_double_mask (sub_mask p q0)
-       | XH -> IsPos (XO p))
-    | XO p ->
-      (match y with
-       | XI q0 -> succ_double_mask (sub_mask_carry p q0)
-       | XO q0 -> double_mask (sub_mask p q0)
-       | XH -> IsPos (pred_double p))
-    | XH -> (match y with
-             | XH -> IsNul
-             | _ -> IsNeg)
-
-  (** val sub_mask_carry : positive -> positive -> mask **)
-
-  and sub_mask_carry x y =
-    match x with
-    | XI p ->
-      (match y with
-       | XI q0 -> succ_double_mask (sub_mask_carry p q0)
-       | XO q0 -> double_mask (sub_mask p q0)
-       | XH -> IsPos (pred_double p))
-    | XO p ->
-      (match y with
-       | XI q0 -> double_mask (sub_mask_carry p q0)
-       | XO q0 -> succ_double_mask (sub_mask_carry p q0)
-       | XH -> double_pred_mask p)
-    | XH -> IsNeg
-
-  (** val compare_cont : comparison -> positive -> positive -> comparison **)
-
-  let rec compare_cont r x y =
-    match x with
-    | XI p ->
-      (match y with
-       | XI q0 -> compare_cont r p q0
-       | XO q0 -> compare_cont Gt p q0
-       | XH -> Gt)
-    | XO p ->
-      (match y with
-       | XI q0 -> compare_cont Lt p q0
-       | XO q0 -> compare_cont r p q0
-       | XH -> Gt)
-    | XH -> (match y with
-             | XH -> r
-             | _ -> Lt)
-
-  (** val compare : positive -> positive -> comparison **)
-
-  let compare =
-    compare_cont Eq
-
-  (** val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1 **)
-
-  let rec iter_op op p a =
-    match p with
-    | XI p0 -> op a (iter_op op p0 (op a a))
-    | XO p0 -> iter_op op p0 (op a a)
-    | XH -> a
-
-  (** val to_nat : positive -> int **)
-
-  let to_nat x =
-    iter_op add x (Stdlib.Int.succ 0)
-
-  (** val of_succ_nat : int -> positive **)
-
-  let rec of_succ_nat n0 =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> XH)
-      (fun x -> succ (of_succ_nat x))
-      n0
  end
 
 module Coq_Pos =
@@ -308,6 +146,13 @@ module Coq_Pos =
   let rec pred_double = function
   | XI p -> XI (XO p)
   | XO p -> XI (pred_double p)
+  | XH -> XH
+
+  (** val pred : positive -> positive **)
+
+  let pred = function
+  | XI p -> XO p
+  | XO p -> pred_double p
   | XH -> XH
 
   type mask = Pos.mask =
@@ -376,13 +221,12 @@ module Coq_Pos =
     | IsPos z0 -> z0
     | _ -> XH
 
-  (** val mul : positive -> positive -> positive **)
+  (** val size_nat : positive -> int **)
 
-  let rec mul x y =
-    match x with
-    | XI p -> add y (XO (mul p y))
-    | XO p -> XO (mul p y)
-    | XH -> y
+  let rec size_nat = function
+  | XI p0 -> Stdlib.Int.succ (size_nat p0)
+  | XO p0 -> Stdlib.Int.succ (size_nat p0)
+  | XH -> Stdlib.Int.succ 0
 
   (** val compare_cont : comparison -> positive -> positive -> comparison **)
 
@@ -406,20 +250,6 @@ module Coq_Pos =
 
   let compare =
     compare_cont Eq
-
-  (** val pred : positive -> positive **)
-
-  let pred = function
-  | XI p -> XO p
-  | XO p -> pred_double p
-  | XH -> XH
-
-  (** val size_nat : positive -> int **)
-
-  let rec size_nat = function
-  | XI p0 -> Stdlib.Int.succ (size_nat p0)
-  | XO p0 -> Stdlib.Int.succ (size_nat p0)
-  | XH -> Stdlib.Int.succ 0
 
   (** val ggcdn :
       int -> positive -> positive -> positive * (positive * positive) **)
@@ -459,6 +289,27 @@ module Coq_Pos =
   let ggcd a b =
     ggcdn (Coq__1.add (size_nat a) (size_nat b)) a b
 
+  (** val iter_op : ('a1 -> 'a1 -> 'a1) -> positive -> 'a1 -> 'a1 **)
+
+  let rec iter_op op p a =
+    match p with
+    | XI p0 -> op a (iter_op op p0 (op a a))
+    | XO p0 -> iter_op op p0 (op a a)
+    | XH -> a
+
+  (** val to_nat : positive -> int **)
+
+  let to_nat x =
+    iter_op Coq__1.add x (Stdlib.Int.succ 0)
+
+  (** val of_succ_nat : int -> positive **)
+
+  let rec of_succ_nat n0 =
+    (fun fO fS n -> if n=0 then fO () else fS (n-1))
+      (fun _ -> XH)
+      (fun x -> succ (of_succ_nat x))
+      n0
+
   (** val eq_dec : positive -> positive -> bool **)
 
   let rec eq_dec p x0 =
@@ -488,6 +339,15 @@ module N =
   | N0 -> N0
   | Npos p -> Npos (XO p)
 
+  (** val add : n -> n -> n **)
+
+  let add n0 m =
+    match n0 with
+    | N0 -> m
+    | Npos p -> (match m with
+                 | N0 -> n0
+                 | Npos q0 -> Npos (Coq_Pos.add p q0))
+
   (** val sub : n -> n -> n **)
 
   let sub n0 m =
@@ -497,8 +357,8 @@ module N =
       (match m with
        | N0 -> n0
        | Npos m' ->
-         (match Pos.sub_mask n' m' with
-          | Pos.IsPos p -> Npos p
+         (match Coq_Pos.sub_mask n' m' with
+          | Coq_Pos.IsPos p -> Npos p
           | _ -> N0))
 
   (** val compare : n -> n -> comparison **)
@@ -510,7 +370,7 @@ module N =
              | Npos _ -> Lt)
     | Npos n' -> (match m with
                   | N0 -> Gt
-                  | Npos m' -> Pos.compare n' m')
+                  | Npos m' -> Coq_Pos.compare n' m')
 
   (** val leb : n -> n -> bool **)
 
@@ -538,24 +398,6 @@ module N =
                     | XH -> ((Npos XH), N0)
                     | _ -> (N0, (Npos XH))))
 
-  (** val add : n -> n -> n **)
-
-  let add n0 m =
-    match n0 with
-    | N0 -> m
-    | Npos p -> (match m with
-                 | N0 -> n0
-                 | Npos q0 -> Npos (Coq_Pos.add p q0))
-
-  (** val mul : n -> n -> n **)
-
-  let mul n0 m =
-    match n0 with
-    | N0 -> N0
-    | Npos p -> (match m with
-                 | N0 -> N0
-                 | Npos q0 -> Npos (Coq_Pos.mul p q0))
-
   (** val div_eucl : n -> n -> n * n **)
 
   let div_eucl a b =
@@ -579,14 +421,14 @@ module N =
 
   let to_nat = function
   | N0 -> 0
-  | Npos p -> Pos.to_nat p
+  | Npos p -> Coq_Pos.to_nat p
 
   (** val of_nat : int -> n **)
 
   let of_nat n0 =
     (fun fO fS n -> if n=0 then fO () else fS (n-1))
       (fun _ -> N0)
-      (fun n' -> Npos (Pos.of_succ_nat n'))
+      (fun n' -> Npos (Coq_Pos.of_succ_nat n'))
       n0
 
   (** val eq_dec : n -> n -> bool **)
@@ -601,11 +443,17 @@ module N =
                  | Npos p0 -> Coq_Pos.eq_dec p p0)
  end
 
-(** val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list **)
+(** val hd_error : 'a1 list -> 'a1 option **)
 
-let rec map f = function
+let hd_error = function
+| [] -> None
+| x :: _ -> Some x
+
+(** val tl : 'a1 list -> 'a1 list **)
+
+let tl = function
 | [] -> []
-| a :: l0 -> (f a) :: (map f l0)
+| _ :: m -> m
 
 (** val nth : int -> 'a1 list -> 'a1 -> 'a1 **)
 
@@ -616,8 +464,39 @@ let rec nth n0 l default =
               | x :: _ -> x)
     (fun m -> match l with
               | [] -> default
-              | _ :: l' -> nth m l' default)
+              | _ :: t -> nth m t default)
     n0
+
+(** val rev_append : 'a1 list -> 'a1 list -> 'a1 list **)
+
+let rec rev_append l l' =
+  match l with
+  | [] -> l'
+  | a :: l0 -> rev_append l0 (a :: l')
+
+(** val list_eq_dec : ('a1 -> 'a1 -> bool) -> 'a1 list -> 'a1 list -> bool **)
+
+let rec list_eq_dec eq_dec0 l l' =
+  match l with
+  | [] -> (match l' with
+           | [] -> true
+           | _ :: _ -> false)
+  | y :: l0 ->
+    (match l' with
+     | [] -> false
+     | a :: l1 -> if eq_dec0 y a then list_eq_dec eq_dec0 l0 l1 else false)
+
+(** val map : ('a1 -> 'a2) -> 'a1 list -> 'a2 list **)
+
+let rec map f = function
+| [] -> []
+| a :: t -> (f a) :: (map f t)
+
+(** val fold_right : ('a2 -> 'a1 -> 'a1) -> 'a1 -> 'a2 list -> 'a1 **)
+
+let rec fold_right f a0 = function
+| [] -> a0
+| b :: t -> f b (fold_right f a0 t)
 
 (** val firstn : int -> 'a1 list -> 'a1 list **)
 
@@ -639,59 +518,8 @@ let rec skipn n0 l =
                | _ :: l0 -> skipn n1 l0)
     n0
 
-(** val hd_error : 'a1 list -> 'a1 option **)
-
-let hd_error = function
-| [] -> None
-| x :: _ -> Some x
-
-(** val tl : 'a1 list -> 'a1 list **)
-
-let tl = function
-| [] -> []
-| _ :: l' -> l'
-
-(** val rev_append : 'a1 list -> 'a1 list -> 'a1 list **)
-
-let rec rev_append l l' =
-  match l with
-  | [] -> l'
-  | a :: l0 -> rev_append l0 (a :: l')
-
-(** val list_eq_dec : ('a1 -> 'a1 -> bool) -> 'a1 list -> 'a1 list -> bool **)
-
-let rec list_eq_dec eq_dec0 l l' =
-  match l with
-  | [] -> (match l' with
-           | [] -> true
-           | _ :: _ -> false)
-  | y :: l0 ->
-    (match l' with
-     | [] -> false
-     | a :: l1 -> if eq_dec0 y a then list_eq_dec eq_dec0 l0 l1 else false)
-
-(** val fold_right : ('a2 -> 'a1 -> 'a1) -> 'a1 -> 'a2 list -> 'a1 **)
-
-let rec fold_right f a0 = function
-| [] -> a0
-| b :: l0 -> f b (fold_right f a0 l0)
-
 module Z =
  struct
-  (** val of_nat : int -> z **)
-
-  let of_nat n0 =
-    (fun fO fS n -> if n=0 then fO () else fS (n-1))
-      (fun _ -> Z0)
-      (fun n1 -> Zpos (Pos.of_succ_nat n1))
-      n0
-
-  (** val to_pos : z -> positive **)
-
-  let to_pos = function
-  | Zpos p -> p
-  | _ -> XH
-
   (** val sgn : z -> z **)
 
   let sgn = function
@@ -704,6 +532,20 @@ module Z =
   let abs = function
   | Zneg p -> Zpos p
   | x -> x
+
+  (** val of_nat : int -> z **)
+
+  let of_nat n0 =
+    (fun fO fS n -> if n=0 then fO () else fS (n-1))
+      (fun _ -> Z0)
+      (fun n1 -> Zpos (Coq_Pos.of_succ_nat n1))
+      n0
+
+  (** val to_pos : z -> positive **)
+
+  let to_pos = function
+  | Zpos p -> p
+  | _ -> XH
 
   (** val ggcd : z -> z -> z * (z * z) **)
 
@@ -768,31 +610,6 @@ let ascii_of_N = function
 
 let ascii_of_nat a =
   ascii_of_N (N.of_nat a)
-
-(** val n_of_digits : bool list -> n **)
-
-let rec n_of_digits = function
-| [] -> N0
-| b :: l' ->
-  N.add (if b then Npos XH else N0) (N.mul (Npos (XO XH)) (n_of_digits l'))
-
-(** val n_of_ascii : char -> n **)
-
-let n_of_ascii a =
-  (* If this appears, you're using Ascii internals. Please don't *)
- (fun f c ->
-  let n = Char.code c in
-  let h i = (n land (1 lsl i)) <> 0 in
-  f (h 0) (h 1) (h 2) (h 3) (h 4) (h 5) (h 6) (h 7))
-    (fun a0 a1 a2 a3 a4 a5 a6 a7 ->
-    n_of_digits
-      (a0 :: (a1 :: (a2 :: (a3 :: (a4 :: (a5 :: (a6 :: (a7 :: [])))))))))
-    a
-
-(** val nat_of_ascii : char -> int **)
-
-let nat_of_ascii a =
-  N.to_nat (n_of_ascii a)
 
 (** val append : char list -> char list -> char list **)
 
@@ -1160,116 +977,107 @@ module Coq_N =
 type qp = qc
   (* singleton inductive, whose constructor was mk_Qp *)
 
-module Coq_list =
- struct
-  (** val list_filter : ('a1 -> decision) -> 'a1 list -> 'a1 list **)
+(** val list_filter : ('a1 -> decision) -> 'a1 list -> 'a1 list **)
 
-  let rec list_filter x = function
-  | [] -> []
-  | x0 :: l0 ->
-    if decide (x x0)
-    then x0 :: (filter0 (fun _ -> list_filter) x l0)
-    else filter0 (fun _ -> list_filter) x l0
+let rec list_filter x = function
+| [] -> []
+| x0 :: l0 ->
+  if decide (x x0)
+  then x0 :: (filter0 (fun _ -> list_filter) x l0)
+  else filter0 (fun _ -> list_filter) x l0
 
-  (** val reverse : 'a1 list -> 'a1 list **)
+(** val reverse0 : 'a1 list -> 'a1 list **)
 
-  let reverse l =
-    rev_append l []
+let reverse0 l =
+  rev_append l []
 
-  (** val list_elem_of_dec :
-      ('a1, 'a1) relDecision -> ('a1, 'a1 list) relDecision **)
+(** val elem_of_list_dec :
+    ('a1, 'a1) relDecision -> ('a1, 'a1 list) relDecision **)
 
-  let rec list_elem_of_dec dec x = function
-  | [] -> false
-  | y :: l0 ->
-    if decide (decide_rel dec x y) then true else list_elem_of_dec dec x l0
+let rec elem_of_list_dec dec x = function
+| [] -> false
+| y :: l0 ->
+  if decide (decide_rel dec x y) then true else elem_of_list_dec dec x l0
 
-  (** val list_eq_dec :
-      ('a1, 'a1) relDecision -> ('a1 list, 'a1 list) relDecision **)
+(** val list_eq_dec0 :
+    ('a1, 'a1) relDecision -> ('a1 list, 'a1 list) relDecision **)
 
-  let list_eq_dec =
-    list_eq_dec
- end
+let list_eq_dec0 =
+  list_eq_dec
 
-module Coq0_list =
- struct
-  (** val list_fmap : (__ -> __) -> __ list -> __ list **)
+(** val list_fmap : (__ -> __) -> __ list -> __ list **)
 
-  let rec list_fmap f = function
-  | [] -> []
-  | x :: l0 -> (f x) :: (list_fmap f l0)
+let rec list_fmap f = function
+| [] -> []
+| x :: l0 -> (f x) :: (list_fmap f l0)
 
-  (** val list_omap : (__ -> __ option) -> __ list -> __ list **)
+(** val list_omap : (__ -> __ option) -> __ list -> __ list **)
 
-  let rec list_omap f = function
-  | [] -> []
-  | x :: l0 ->
-    (match f x with
-     | Some y -> y :: (list_omap f l0)
-     | None -> list_omap f l0)
+let rec list_omap f = function
+| [] -> []
+| x :: l0 ->
+  (match f x with
+   | Some y -> y :: (list_omap f l0)
+   | None -> list_omap f l0)
 
-  (** val list_bind : (__ -> __ list) -> __ list -> __ list **)
+(** val list_bind : (__ -> __ list) -> __ list -> __ list **)
 
-  let rec list_bind f = function
-  | [] -> []
-  | x :: l0 -> app (f x) (list_bind f l0)
+let rec list_bind f = function
+| [] -> []
+| x :: l0 -> app (f x) (list_bind f l0)
 
-  (** val mapM : 'a1 mBind -> 'a1 mRet -> ('a2 -> 'a1) -> 'a2 list -> 'a1 **)
+(** val mapM : 'a1 mBind -> 'a1 mRet -> ('a2 -> 'a1) -> 'a2 list -> 'a1 **)
 
-  let rec mapM h h0 f = function
-  | [] -> mret h0 []
-  | x :: l0 ->
-    mbind h (fun y -> mbind h (fun k -> mret h0 (y :: k)) (mapM h h0 f l0))
-      (f x)
- end
+let rec mapM h h0 f = function
+| [] -> mret h0 []
+| x :: l0 ->
+  mbind h (fun y -> mbind h (fun k -> mret h0 (y :: k)) (mapM h h0 f l0))
+    (f x)
 
-module Coq1_list =
- struct
-  (** val list_find : ('a1 -> decision) -> 'a1 list -> (int * 'a1) option **)
+(** val list_find : ('a1 -> decision) -> 'a1 list -> (int * 'a1) option **)
 
-  let rec list_find h = function
-  | [] -> None
-  | x :: l0 ->
-    if decide (h x)
-    then Some (0, x)
-    else fmap (Obj.magic (fun _ _ -> option_fmap))
-           (prod_map (fun x0 -> Stdlib.Int.succ x0) id) (list_find h l0)
+let rec list_find h = function
+| [] -> None
+| x :: l0 ->
+  if decide (h x)
+  then Some (0, x)
+  else fmap (Obj.magic (fun _ _ -> option_fmap))
+         (prod_map (fun x0 -> Stdlib.Int.succ x0) id) (list_find h l0)
 
-  (** val positives_flatten_go : positive list -> positive -> positive **)
+(** val positives_flatten_go : positive list -> positive -> positive **)
 
-  let rec positives_flatten_go xs acc =
-    match xs with
-    | [] -> acc
-    | x :: xs0 ->
-      positives_flatten_go xs0
-        (Coq0_Pos.app (XO (XI acc)) (Coq0_Pos.reverse (Coq0_Pos.dup x)))
+let rec positives_flatten_go xs acc =
+  match xs with
+  | [] -> acc
+  | x :: xs0 ->
+    positives_flatten_go xs0
+      (Coq0_Pos.app (XO (XI acc)) (Coq0_Pos.reverse (Coq0_Pos.dup x)))
 
-  (** val positives_flatten : positive list -> positive **)
+(** val positives_flatten : positive list -> positive **)
 
-  let positives_flatten xs =
-    positives_flatten_go xs XH
+let positives_flatten xs =
+  positives_flatten_go xs XH
 
-  (** val positives_unflatten_go :
-      positive -> positive list -> positive -> positive list option **)
+(** val positives_unflatten_go :
+    positive -> positive list -> positive -> positive list option **)
 
-  let rec positives_unflatten_go p acc_xs acc_elm =
-    match p with
-    | XI p0 ->
-      (match p0 with
-       | XI p' -> positives_unflatten_go p' acc_xs (XI acc_elm)
-       | _ -> None)
-    | XO p0 ->
-      (match p0 with
-       | XI p' -> positives_unflatten_go p' (acc_elm :: acc_xs) XH
-       | XO p' -> positives_unflatten_go p' acc_xs (XO acc_elm)
-       | XH -> None)
-    | XH -> Some acc_xs
+let rec positives_unflatten_go p acc_xs acc_elm =
+  match p with
+  | XI p0 ->
+    (match p0 with
+     | XI p' -> positives_unflatten_go p' acc_xs (XI acc_elm)
+     | _ -> None)
+  | XO p0 ->
+    (match p0 with
+     | XI p' -> positives_unflatten_go p' (acc_elm :: acc_xs) XH
+     | XO p' -> positives_unflatten_go p' acc_xs (XO acc_elm)
+     | XH -> None)
+  | XH -> Some acc_xs
 
-  (** val positives_unflatten : positive -> positive list option **)
+(** val positives_unflatten : positive -> positive list option **)
 
-  let positives_unflatten p =
-    positives_unflatten_go p [] XH
- end
+let positives_unflatten p =
+  positives_unflatten_go p [] XH
 
 type 'a countable = { encode : ('a -> positive);
                       decode : (positive -> 'a option) }
@@ -1421,22 +1229,20 @@ let prod_countable _ h _ h0 =
 
 let list_countable _ h =
   { encode = (fun xs ->
-    Coq1_list.positives_flatten
-      (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) h.encode
-        (Obj.magic xs)));
+    positives_flatten
+      (fmap (Obj.magic (fun _ _ -> list_fmap)) h.encode (Obj.magic xs)));
     decode = (fun p ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun positives ->
-      Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+      mapM (Obj.magic (fun _ _ -> option_bind))
         (Obj.magic (fun _ -> option_ret)) (Obj.magic h).decode positives)
-      (Obj.magic Coq1_list.positives_unflatten p)) }
+      (Obj.magic positives_unflatten p)) }
 
 (** val n_countable : n countable **)
 
 let n_countable =
   { encode = (fun x -> match x with
                        | N0 -> XH
-                       | Npos p -> Coq_Pos.succ p);
-    decode = (fun p ->
+                       | Npos p -> Coq_Pos.succ p); decode = (fun p ->
     if decide (decide_rel Coq0_Pos.eq_dec p XH)
     then Some N0
     else Some (Npos (Coq_Pos.pred p))) }
@@ -1467,8 +1273,7 @@ let rec gen_tree_dec eqDecision0 t1 t2 =
      | GenNode (n2, ts2) ->
        if decide (decide_rel Coq_Nat.eq_dec n1 n2)
        then decide
-              (decide_rel (Coq_list.list_eq_dec (gen_tree_dec eqDecision0))
-                ts1 ts2)
+              (decide_rel (list_eq_dec0 (gen_tree_dec eqDecision0)) ts1 ts2)
        else false)
 
 (** val gen_tree_to_list : 'a1 gen_tree -> (int * int, 'a1) sum list **)
@@ -1477,8 +1282,7 @@ let rec gen_tree_to_list = function
 | GenLeaf x -> (Inr x) :: []
 | GenNode (n0, ts) ->
   app
-    (mbind (Obj.magic (fun _ _ -> Coq0_list.list_bind)) gen_tree_to_list
-      (Obj.magic ts))
+    (mbind (Obj.magic (fun _ _ -> list_bind)) gen_tree_to_list (Obj.magic ts))
     ((Inl ((length ts), n0)) :: [])
 
 (** val gen_tree_of_list :
@@ -1491,7 +1295,7 @@ let rec gen_tree_of_list k = function
    | Inl p ->
      let (len, n0) = p in
      gen_tree_of_list ((GenNode (n0,
-       (Coq_list.reverse (firstn len k)))) :: (skipn len k)) l0
+       (reverse0 (firstn len k)))) :: (skipn len k)) l0
    | Inr x -> gen_tree_of_list ((GenLeaf x) :: k) l0)
 
 (** val gen_tree_countable :
@@ -1499,15 +1303,14 @@ let rec gen_tree_of_list k = function
 
 let gen_tree_countable eqDecision0 h =
   inj_countable
-    (Coq_list.list_eq_dec
+    (list_eq_dec0
       (sum_eq_dec (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec) eqDecision0))
     (list_countable
       (sum_eq_dec (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec) eqDecision0)
       (sum_countable (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec)
         (prod_countable Coq_Nat.eq_dec nat_countable Coq_Nat.eq_dec
-          nat_countable)
-        eqDecision0 h))
-    (gen_tree_dec eqDecision0) gen_tree_to_list (gen_tree_of_list [])
+          nat_countable) eqDecision0 h)) (gen_tree_dec eqDecision0)
+    gen_tree_to_list (gen_tree_of_list [])
 
 (** val bool_cons_pos : bool -> positive -> positive **)
 
@@ -2667,7 +2470,7 @@ let pretty_Z = function
 
 let search_infinite_go f eqDecision0 xs n0 go =
   let x = f n0 in
-  if decide (decide_rel (Coq_list.list_elem_of_dec eqDecision0) x xs)
+  if decide (decide_rel (elem_of_list_dec eqDecision0) x xs)
   then go (Stdlib.Int.succ n0) __
   else x
 
@@ -2684,13 +2487,18 @@ let search_infinite f eqDecision0 xs =
 let string_infinite =
   search_infinite (pretty0 pretty_nat) String.eq_dec
 
+(** val set_fold :
+    ('a1, 'a2) elements -> ('a1 -> 'a3 -> 'a3) -> 'a3 -> 'a2 -> 'a3 **)
+
+let set_fold h f b =
+  compose (fold_right f b) (elements0 h)
+
 (** val set_filter :
     ('a1, 'a2) elements -> 'a2 empty -> ('a1, 'a2) singleton -> 'a2 union ->
     ('a1 -> decision) -> 'a2 -> 'a2 **)
 
 let set_filter h h0 h1 h2 h3 x =
-  list_to_set h1 h0 h2
-    (filter0 (fun _ -> Coq_list.list_filter) h3 (elements0 h x))
+  list_to_set h1 h0 h2 (filter0 (fun _ -> list_filter) h3 (elements0 h x))
 
 (** val set_map :
     ('a1, 'a2) elements -> ('a3, 'a4) singleton -> 'a4 empty -> 'a4 union ->
@@ -2698,7 +2506,7 @@ let set_filter h h0 h1 h2 h3 x =
 
 let set_map h h0 h1 h2 f x =
   list_to_set (Obj.magic h0) h1 h2
-    (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) f (elements0 h x))
+    (fmap (Obj.magic (fun _ _ -> list_fmap)) f (elements0 h x))
 
 (** val set_bind :
     ('a1, 'a2) elements -> 'a3 empty -> 'a3 union -> ('a1 -> 'a3) -> 'a2 ->
@@ -2706,8 +2514,7 @@ let set_map h h0 h1 h2 f x =
 
 let set_bind h h0 h1 f x =
   union_list h0 h1
-    (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) f
-      (elements0 (Obj.magic h) x))
+    (fmap (Obj.magic (fun _ _ -> list_fmap)) f (elements0 (Obj.magic h) x))
 
 (** val set_fresh :
     ('a1, 'a2) elements -> ('a1, 'a1 list) fresh -> ('a1, 'a2) fresh **)
@@ -2752,17 +2559,7 @@ let map_to_list h =
 
 let map_to_set h h0 h1 h2 f m =
   list_to_set (Obj.magic h0) h1 h2
-    (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) (uncurry f)
-      (map_to_list h m))
-
-(** val set_to_map :
-    ('a1, 'a2) elements -> ('a3, 'a4, 'a5) insert -> 'a5 empty -> ('a1 ->
-    'a3 * 'a4) -> 'a2 -> 'a5 **)
-
-let set_to_map h h0 h1 f x =
-  list_to_map h0 h1
-    (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) f
-      (elements0 (Obj.magic h) x))
+    (fmap (Obj.magic (fun _ _ -> list_fmap)) (uncurry f) (map_to_list h m))
 
 (** val map_union_with : 'a1 merge -> ('a2, 'a1) unionWith **)
 
@@ -2806,7 +2603,7 @@ let mapset_union h4 x1 x2 =
     (__ -> ('a1, __, 'a2) mapFold) -> ('a1, 'a2 mapset') elements **)
 
 let mapset_elements h5 x =
-  fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) fst
+  fmap (Obj.magic (fun _ _ -> list_fmap)) fst
     (Obj.magic map_to_list (h5 __) x)
 
 (** val mapset_eq_dec :
@@ -3191,8 +2988,7 @@ let rec gmap_dep_ne_omap f x =
       (mbind (Obj.magic (fun _ _ -> option_bind)) (fun pat ->
         let (_, x0) = pat in
         fmap (Obj.magic (fun _ _ -> option_fmap)) (fun x1 -> (__, x1))
-          (Obj.magic f x0))
-        (Obj.magic mx))
+          (Obj.magic f x0)) (Obj.magic mx))
       (gmap_dep_omap_aux (fun x0 -> gmap_dep_ne_omap f x0) mr))
 
 (** val gmap_merge_aux :
@@ -3278,9 +3074,7 @@ let rec gmap_dep_ne_fold f x x0 x1 =
       (gmap_fold_aux (fun x2 x3 x4 -> gmap_dep_ne_fold f x2 x3 x4) (XO x)
         (match mx with
          | Some p0 -> let (_, x2) = p0 in f (Coq0_Pos.reverse x) x2 x0
-         | None -> x0)
-        ml)
-      mr)
+         | None -> x0) ml) mr)
 
 (** val gmap_dep_fold :
     (positive -> 'a1 -> 'a2 -> 'a2) -> positive -> 'a2 -> 'a1 gmap_dep -> 'a2 **)
@@ -3387,9 +3181,9 @@ let map_snd f =
     countable -> ('a1 -> 'a2) -> ('a1 -> 'a3) -> 'a1 gset -> ('a2, 'a3) gmap **)
 
 let gset_to_gmap_with eqDecision0 h eqDecision1 h0 f_key f_val x =
-  set_to_map (gset_elements eqDecision0 h)
-    (map_insert (gmap_partial_alter eqDecision1 h0))
-    (gmap_empty eqDecision1 h0) (fun x0 -> ((f_key x0), (f_val x0))) x
+  set_fold (gset_elements eqDecision0 h) (fun x0 acc ->
+    insert0 (map_insert (gmap_partial_alter eqDecision1 h0)) (f_key x0)
+      (f_val x0) acc) (empty0 (gmap_empty eqDecision1 h0)) x
 
 type preval =
 | PVNull
@@ -3580,23 +3374,6 @@ let rec sexp_match_cases_has_patvar = function
    | PatVar -> true
    | PatCtor _ -> sexp_match_cases_has_patvar pes0)
 
-(** val list_eq_dec_elem_of :
-    'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool **)
-
-let rec list_eq_dec_elem_of l ys helem =
-  match l with
-  | [] -> (match ys with
-           | [] -> true
-           | _ :: _ -> false)
-  | y :: l0 ->
-    (match ys with
-     | [] -> false
-     | a :: l1 ->
-       let iH = list_eq_dec_elem_of l0 l1 in
-       let htail = iH (fun x y0 _ _ -> helem x y0 __ __) in
-       let helem0 = helem y a in
-       let hhead = helem0 __ __ in if hhead then htail else false)
-
 type index =
 | IdxNum of int
 | IdxSym of char list
@@ -3619,8 +3396,7 @@ let index_eq_decision x y =
 let index_countable =
   inj_countable (sum_eq_dec Coq_Nat.eq_dec String.eq_dec)
     (sum_countable Coq_Nat.eq_dec nat_countable String.eq_dec
-      String.countable)
-    index_eq_decision (fun i ->
+      String.countable) index_eq_decision (fun i ->
     match i with
     | IdxNum n0 -> Inl n0
     | IdxSym s -> Inr s) (fun code ->
@@ -3632,9 +3408,9 @@ type identifier =
 | IdSym of char list
 | IdSymWithIndices of char list * index list
 
-(** val identifier_eq_decision : (identifier, identifier) relDecision **)
+(** val identifier_decision : (identifier, identifier) relDecision **)
 
-let identifier_eq_decision x y =
+let identifier_decision x y =
   match x with
   | IdSym s ->
     (match y with
@@ -3645,7 +3421,7 @@ let identifier_eq_decision x y =
      | IdSym _ -> false
      | IdSymWithIndices (s0, idx0) ->
        if decide_rel String.eq_dec s s0
-       then decide_rel (Coq_list.list_eq_dec index_eq_decision) idx idx0
+       then decide_rel (list_eq_dec0 index_eq_decision) idx idx0
        else false)
 
 (** val identifier_countable : identifier countable **)
@@ -3653,13 +3429,13 @@ let identifier_eq_decision x y =
 let identifier_countable =
   inj_countable
     (sum_eq_dec String.eq_dec
-      (prod_eq_dec String.eq_dec (Coq_list.list_eq_dec index_eq_decision)))
+      (prod_eq_dec String.eq_dec (list_eq_dec0 index_eq_decision)))
     (sum_countable String.eq_dec String.countable
-      (prod_eq_dec String.eq_dec (Coq_list.list_eq_dec index_eq_decision))
+      (prod_eq_dec String.eq_dec (list_eq_dec0 index_eq_decision))
       (prod_countable String.eq_dec String.countable
-        (Coq_list.list_eq_dec index_eq_decision)
+        (list_eq_dec0 index_eq_decision)
         (list_countable index_eq_decision index_countable)))
-    identifier_eq_decision (fun i ->
+    identifier_decision (fun i ->
     match i with
     | IdSym s -> Inl s
     | IdSymWithIndices (s, idx) -> Inr (s, idx)) (fun code ->
@@ -3670,12 +3446,34 @@ let identifier_countable =
 (** val identifier_add_prefix : char list -> identifier -> identifier **)
 
 let identifier_add_prefix prefix = function
-| IdSym s -> IdSym (append prefix s)
-| IdSymWithIndices (s, idx) -> IdSymWithIndices ((append prefix s), idx)
+| IdSym id1 -> IdSym (append prefix id1)
+| IdSymWithIndices (id1, idx) -> IdSymWithIndices ((append prefix id1), idx)
+
+(** val s_bool : identifier **)
+
+let s_bool =
+  IdSym ('B'::('o'::('o'::('l'::[]))))
 
 type sort =
 | SParam of identifier
 | SApp of identifier * sort list
+
+(** val list_eq_dec_dep :
+    'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool **)
+
+let rec list_eq_dec_dep l ys helem =
+  match l with
+  | [] -> (match ys with
+           | [] -> true
+           | _ :: _ -> false)
+  | y :: l0 ->
+    (match ys with
+     | [] -> false
+     | a :: l1 ->
+       let iH = list_eq_dec_dep l0 l1 in
+       let htail = iH (fun x y0 _ _ -> helem x y0 __ __) in
+       let helem0 = helem y a in
+       let hhead = helem0 __ __ in if hhead then htail else false)
 
 (** val sort_eq_decision : (sort, sort) relDecision **)
 
@@ -3683,14 +3481,14 @@ let rec sort_eq_decision x x0 =
   match x with
   | SParam u ->
     (match x0 with
-     | SParam u0 -> decide_rel identifier_eq_decision u u0
+     | SParam u0 -> decide_rel identifier_decision u u0
      | SApp (_, _) -> false)
   | SApp (s, _UU03c4_s) ->
     (match x0 with
      | SParam _ -> false
      | SApp (s0, _UU03c4_s0) ->
-       if decide_rel identifier_eq_decision s s0
-       then list_eq_dec_elem_of _UU03c4_s _UU03c4_s0 (fun x1 y0 _ _ ->
+       if decide_rel identifier_decision s s0
+       then list_eq_dec_dep _UU03c4_s _UU03c4_s0 (fun x1 y0 _ _ ->
               sort_eq_decision x1 y0)
        else false)
 
@@ -3715,7 +3513,7 @@ let rec gen_tree_to_sort = function
         | GenLeaf sym ->
           mbind (Obj.magic (fun _ _ -> option_bind)) (fun _UU03c4_s -> Some
             (SApp (sym, _UU03c4_s)))
-            (Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+            (mapM (Obj.magic (fun _ _ -> option_bind))
               (Obj.magic (fun _ -> option_ret)) gen_tree_to_sort ts)
         | GenNode (_, _) -> None))
      (fun _ -> None)
@@ -3724,14 +3522,9 @@ let rec gen_tree_to_sort = function
 (** val sort_countable : sort countable **)
 
 let sort_countable =
-  inj_countable (gen_tree_dec identifier_eq_decision)
-    (gen_tree_countable identifier_eq_decision identifier_countable)
+  inj_countable (gen_tree_dec identifier_decision)
+    (gen_tree_countable identifier_decision identifier_countable)
     sort_eq_decision sort_to_gen_tree gen_tree_to_sort
-
-(** val s_bool : identifier **)
-
-let s_bool =
-  IdSym ('B'::('o'::('o'::('l'::[]))))
 
 (** val _UU03c3__bool : sort **)
 
@@ -3753,7 +3546,7 @@ let pattern_eq_dec x y =
     (match y with
      | PVar -> false
      | PApp (c0, arity0) ->
-       if decide_rel identifier_eq_decision c c0
+       if decide_rel identifier_decision c c0
        then decide_rel Coq_Nat.eq_dec arity arity0
        else false)
 
@@ -3761,13 +3554,11 @@ let pattern_eq_dec x y =
 
 let pattern_countable =
   inj_countable
-    (sum_eq_dec unit_eq_dec
-      (prod_eq_dec identifier_eq_decision Coq_Nat.eq_dec))
+    (sum_eq_dec unit_eq_dec (prod_eq_dec identifier_decision Coq_Nat.eq_dec))
     (sum_countable unit_eq_dec unit_countable
-      (prod_eq_dec identifier_eq_decision Coq_Nat.eq_dec)
-      (prod_countable identifier_eq_decision identifier_countable
-        Coq_Nat.eq_dec nat_countable))
-    pattern_eq_dec (fun p ->
+      (prod_eq_dec identifier_decision Coq_Nat.eq_dec)
+      (prod_countable identifier_decision identifier_countable Coq_Nat.eq_dec
+        nat_countable)) pattern_eq_dec (fun p ->
     match p with
     | PVar -> Inl ()
     | PApp (c, a) -> Inr (c, a)) (fun code ->
@@ -3791,6 +3582,23 @@ type term =
 | TLet of term list * term
 | TMatch of term * (pattern0 * term) list
 
+(** val list_eq_dec_dep0 :
+    'a1 list -> 'a1 list -> ('a1 -> 'a1 -> __ -> __ -> bool) -> bool **)
+
+let rec list_eq_dec_dep0 l ys helem =
+  match l with
+  | [] -> (match ys with
+           | [] -> true
+           | _ :: _ -> false)
+  | y :: l0 ->
+    (match ys with
+     | [] -> false
+     | a :: l1 ->
+       let iH = list_eq_dec_dep0 l0 l1 in
+       let htail = iH (fun x y0 _ _ -> helem x y0 __ __) in
+       let helem0 = helem y a in
+       let hhead = helem0 __ __ in if hhead then htail else false)
+
 (** val term_eq_decision : (term, term) relDecision **)
 
 let rec term_eq_decision = function
@@ -3811,9 +3619,9 @@ let rec term_eq_decision = function
   (fun x0 ->
     match x0 with
     | TApp (f0, _UU03c3_0, ts0) ->
-      if decide_rel identifier_eq_decision f f0
+      if decide_rel identifier_decision f f0
       then if decide_rel (option_eq_dec sort_eq_decision) _UU03c3_ _UU03c3_0
-           then list_eq_dec_elem_of ts ts0 (fun x1 y0 _ _ ->
+           then list_eq_dec_dep0 ts ts0 (fun x1 y0 _ _ ->
                   term_eq_decision x1 y0)
            else false
       else false
@@ -3843,7 +3651,7 @@ let rec term_eq_decision = function
   (fun x0 ->
     match x0 with
     | TLet (binds0, t0) ->
-      if list_eq_dec_elem_of binds binds0 (fun x1 y0 _ _ ->
+      if list_eq_dec_dep0 binds binds0 (fun x1 y0 _ _ ->
            term_eq_decision x1 y0)
       then term_eq_decision t t0
       else false
@@ -3853,7 +3661,7 @@ let rec term_eq_decision = function
     match x0 with
     | TMatch (t0, cases0) ->
       if term_eq_decision t t0
-      then list_eq_dec_elem_of cases cases0 (fun pt1 pt2 _ _ ->
+      then list_eq_dec_dep0 cases cases0 (fun pt1 pt2 _ _ ->
              let (p, t1) = pt1 in
              let (p0, t2) = pt2 in
              let s = decide (decide_rel pattern_eq_dec p p0) in
@@ -3869,9 +3677,7 @@ let rec term_encode = function
 | TFVar x -> (Inl (Inl (Inl x))) :: []
 | TBVar (i, j) -> (Inl (Inl (Inr (i, j)))) :: []
 | TApp (f, _UU03c3_, ts) ->
-  app
-    (mbind (Obj.magic (fun _ _ -> Coq0_list.list_bind)) term_encode
-      (Obj.magic ts))
+  app (mbind (Obj.magic (fun _ _ -> list_bind)) term_encode (Obj.magic ts))
     ((Inl (Inr (Inl (((length ts), f), _UU03c3_)))) :: [])
 | TFun (_UU03c3_, t0) ->
   app (term_encode t0) ((Inl (Inr (Inr _UU03c3_))) :: [])
@@ -3880,17 +3686,14 @@ let rec term_encode = function
 | TForall (_UU03c3_, t0) ->
   app (term_encode t0) ((Inr (Inl (Inr _UU03c3_))) :: [])
 | TLet (ts, t0) ->
-  app
-    (mbind (Obj.magic (fun _ _ -> Coq0_list.list_bind)) term_encode
-      (Obj.magic ts))
+  app (mbind (Obj.magic (fun _ _ -> list_bind)) term_encode (Obj.magic ts))
     (app (term_encode t0) ((Inr (Inr (Inl (length ts)))) :: []))
 | TMatch (t0, pts) ->
   let ps = map fst pts in
   app (term_encode t0)
     (app
-      (mbind (Obj.magic (fun _ _ -> Coq0_list.list_bind))
-        (compose term_encode snd) (Obj.magic pts))
-      ((Inr (Inr (Inr ps))) :: []))
+      (mbind (Obj.magic (fun _ _ -> list_bind)) (compose term_encode snd)
+        (Obj.magic pts)) ((Inr (Inr (Inr ps))) :: []))
 
 (** val term_decode :
     term list -> (((char list, int * int) sum, ((int * identifier) * sort
@@ -3913,7 +3716,7 @@ let rec term_decode stack = function
          | Inl p ->
            let (p0, _UU03c3_) = p in
            let (n0, f) = p0 in
-           let ts = Coq_list.reverse (firstn n0 stack) in
+           let ts = reverse0 (firstn n0 stack) in
            let stack' = skipn n0 stack in
            term_decode ((TApp (f, _UU03c3_, ts)) :: stack') code'
          | Inr _UU03c3_ ->
@@ -3940,12 +3743,12 @@ let rec term_decode stack = function
          | Inl n0 ->
            mbind (Obj.magic (fun _ _ -> option_bind)) (fun t ->
              let stack' = tl stack in
-             let ts = Coq_list.reverse (firstn n0 stack') in
+             let ts = reverse0 (firstn n0 stack') in
              let stack'' = skipn n0 stack' in
              term_decode ((TLet (ts, t)) :: stack'') code') (hd_error stack)
          | Inr ps ->
            let n0 = length ps in
-           let ts = Coq_list.reverse (firstn n0 stack) in
+           let ts = reverse0 (firstn n0 stack) in
            let stack' = skipn n0 stack in
            mbind (Obj.magic (fun _ _ -> option_bind)) (fun t ->
              let stack'' = tl stack' in
@@ -3957,36 +3760,33 @@ let rec term_decode stack = function
 
 let term_countable =
   inj_countable
-    (Coq_list.list_eq_dec
+    (list_eq_dec0
       (sum_eq_dec
         (sum_eq_dec
           (sum_eq_dec String.eq_dec
             (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec))
           (sum_eq_dec
-            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
-              (option_eq_dec sort_eq_decision))
-            sort_eq_decision))
+            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
+              (option_eq_dec sort_eq_decision)) sort_eq_decision))
         (sum_eq_dec (sum_eq_dec sort_eq_decision sort_eq_decision)
-          (sum_eq_dec Coq_Nat.eq_dec (Coq_list.list_eq_dec pattern_eq_dec)))))
+          (sum_eq_dec Coq_Nat.eq_dec (list_eq_dec0 pattern_eq_dec)))))
     (list_countable
       (sum_eq_dec
         (sum_eq_dec
           (sum_eq_dec String.eq_dec
             (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec))
           (sum_eq_dec
-            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
-              (option_eq_dec sort_eq_decision))
-            sort_eq_decision))
+            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
+              (option_eq_dec sort_eq_decision)) sort_eq_decision))
         (sum_eq_dec (sum_eq_dec sort_eq_decision sort_eq_decision)
-          (sum_eq_dec Coq_Nat.eq_dec (Coq_list.list_eq_dec pattern_eq_dec))))
+          (sum_eq_dec Coq_Nat.eq_dec (list_eq_dec0 pattern_eq_dec))))
       (sum_countable
         (sum_eq_dec
           (sum_eq_dec String.eq_dec
             (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec))
           (sum_eq_dec
-            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
-              (option_eq_dec sort_eq_decision))
-            sort_eq_decision))
+            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
+              (option_eq_dec sort_eq_decision)) sort_eq_decision))
         (sum_countable
           (sum_eq_dec String.eq_dec
             (prod_eq_dec Coq_Nat.eq_dec Coq_Nat.eq_dec))
@@ -3995,27 +3795,25 @@ let term_countable =
             (prod_countable Coq_Nat.eq_dec nat_countable Coq_Nat.eq_dec
               nat_countable))
           (sum_eq_dec
-            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
-              (option_eq_dec sort_eq_decision))
-            sort_eq_decision)
+            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
+              (option_eq_dec sort_eq_decision)) sort_eq_decision)
           (sum_countable
-            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
+            (prod_eq_dec (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
               (option_eq_dec sort_eq_decision))
-            (prod_countable
-              (prod_eq_dec Coq_Nat.eq_dec identifier_eq_decision)
+            (prod_countable (prod_eq_dec Coq_Nat.eq_dec identifier_decision)
               (prod_countable Coq_Nat.eq_dec nat_countable
-                identifier_eq_decision identifier_countable)
+                identifier_decision identifier_countable)
               (option_eq_dec sort_eq_decision)
               (option_countable sort_eq_decision sort_countable))
             sort_eq_decision sort_countable))
         (sum_eq_dec (sum_eq_dec sort_eq_decision sort_eq_decision)
-          (sum_eq_dec Coq_Nat.eq_dec (Coq_list.list_eq_dec pattern_eq_dec)))
+          (sum_eq_dec Coq_Nat.eq_dec (list_eq_dec0 pattern_eq_dec)))
         (sum_countable (sum_eq_dec sort_eq_decision sort_eq_decision)
           (sum_countable sort_eq_decision sort_countable sort_eq_decision
             sort_countable)
-          (sum_eq_dec Coq_Nat.eq_dec (Coq_list.list_eq_dec pattern_eq_dec))
+          (sum_eq_dec Coq_Nat.eq_dec (list_eq_dec0 pattern_eq_dec))
           (sum_countable Coq_Nat.eq_dec nat_countable
-            (Coq_list.list_eq_dec pattern_eq_dec)
+            (list_eq_dec0 pattern_eq_dec)
             (list_countable pattern_eq_dec pattern_countable)))))
     term_eq_decision term_encode (term_decode [])
 
@@ -4067,7 +3865,7 @@ let rec term_open k us t = match t with
 
 let rec term_close ys k = function
 | TFVar x ->
-  (match Coq1_list.list_find (decide_rel String.eq_dec x) ys with
+  (match list_find (decide_rel String.eq_dec x) ys with
    | Some p -> let (j, _) = p in TBVar (k, j)
    | None -> TFVar x)
 | TBVar (i, j) -> TBVar (i, j)
@@ -4253,19 +4051,42 @@ let f_geq =
 (** val f_int_literal : z -> identifier **)
 
 let f_int_literal i =
-  IdSym
-    (append
-      ('i'::('n'::('t'::('_'::('l'::('i'::('t'::('e'::('r'::('a'::('l'::('_'::[]))))))))))))
-      (pretty0 pretty_Z i))
+  IdSym (pretty0 pretty_Z i)
 
 (** val f_decimal_literal : qc -> identifier **)
 
+let decimal_n_is_zero n0 =
+  decide (decide_rel Coq_N.eq_dec n0 N0)
+
+let decimal_z_abs = function
+| Z0 -> N0
+| Zpos p -> Npos p
+| Zneg p -> Npos p
+
+let decimal_n_times_ten n0 =
+  N.add (N.double (N.double (N.double n0))) (N.double n0)
+
+let rec decimal_fraction_digits den rem =
+  if decimal_n_is_zero rem
+  then []
+  else let rem10 = decimal_n_times_ten rem in
+       let (digit, rem') = N.div_eucl rem10 den in
+       (pretty_N_char digit) :: (decimal_fraction_digits den rem')
+
 let f_decimal_literal q0 =
+  let den = Npos q0.qden in
+  let num = decimal_z_abs q0.qnum in
+  let (int_part, rem) = N.div_eucl num den in
+  let unsigned =
+    append (pretty0 pretty_N int_part)
+      ('.' :: (match decimal_fraction_digits den rem with
+               | [] -> '0' :: []
+               | digits -> digits))
+  in
   IdSym
-    (append
-      ('d'::('e'::('c'::('i'::('m'::('a'::('l'::('_'::('l'::('i'::('t'::('e'::('r'::('a'::('l'::('_'::[]))))))))))))))))
-      (append (pretty0 pretty_Z q0.qnum)
-        (append ('/'::[]) (pretty0 pretty_positive q0.qden))))
+    (match q0.qnum with
+     | Zneg _ when not (decimal_n_is_zero num) -> '-' :: unsigned
+     | _ -> unsigned)
 
 (** val minus_ : term -> term -> term **)
 
@@ -4356,191 +4177,10 @@ let quote_char =
 let quote_string =
   quote_char::[]
 
-(** val hex_digit : int -> char **)
-
-let hex_digit n0 =
-  ascii_of_nat
-    (if Nat.ltb n0 (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ 0))))))))))
-     then add (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            0)))))))))))))))))))))))))))))))))))))))))))))))) n0
-     else add (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-            0)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-            n0)
-
-(** val plain_char : int -> bool **)
-
-let plain_char n0 =
-  (&&)
-    ((&&)
-      ((&&)
-        ((<=) (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ 0)))))))))))))))))))))))))))))))) n0)
-        ((<=) n0 (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          0))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-      (negb
-        ((=) n0 (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-          0)))))))))))))))))))))))))))))))))))))
-    (negb
-      ((=) n0 (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-        (Stdlib.Int.succ
-        0))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
-
-(** val escape_ascii : char -> char list **)
-
-let escape_ascii c =
-  let n0 = nat_of_ascii c in
-  if plain_char n0
-  then c::[]
-  else append ('\\'::('u'::('{'::[])))
-         ((hex_digit
-            (Nat.div n0 (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-              (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-              (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-              (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-              (Stdlib.Int.succ (Stdlib.Int.succ (Stdlib.Int.succ
-              (Stdlib.Int.succ 0))))))))))))))))))::((hex_digit
-                                                       (Nat.modulo n0
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         (Stdlib.Int.succ
-                                                         0))))))))))))))))))::('}'::[])))
-
-(** val escape_string : char list -> char list **)
-
-let rec escape_string = function
-| [] -> []
-| c::s' -> append (escape_ascii c) (escape_string s')
-
 (** val f_string_literal : char list -> char list **)
 
 let f_string_literal s =
-  append quote_string (append (escape_string s) quote_string)
+  append quote_string (append s quote_string)
 
 (** val string_literal : char list -> term **)
 
@@ -4690,46 +4330,6 @@ let rec encode_type = function
 | TADT _UU03b4_ -> _UU03c3__adt _UU03b4_
 | TList _UU03c4_0 -> _UU03c4__seq (encode_type _UU03c4_0)
 
-(** val f_repr_nat : identifier **)
-
-let f_repr_nat =
-  IdSym ('r'::('e'::('p'::('r'::('N'::('a'::('t'::[])))))))
-
-(** val f_repr_rat : identifier **)
-
-let f_repr_rat =
-  IdSym ('r'::('e'::('p'::('r'::('R'::('a'::('t'::[])))))))
-
-(** val f_repr_val : identifier **)
-
-let f_repr_val =
-  IdSym ('r'::('e'::('p'::('r'::('V'::('a'::('l'::[])))))))
-
-(** val f_repr_adt : char list -> identifier **)
-
-let f_repr_adt _UU03b4_ =
-  IdSym (append ('r'::('e'::('p'::('r'::('A'::('D'::('T'::[]))))))) _UU03b4_)
-
-(** val repr_nat : term -> term **)
-
-let repr_nat t =
-  TApp (f_repr_nat, None, (t :: []))
-
-(** val repr_rat : term -> term **)
-
-let repr_rat t =
-  TApp (f_repr_rat, None, (t :: []))
-
-(** val repr_val : term -> term **)
-
-let repr_val t =
-  TApp (f_repr_val, None, (t :: []))
-
-(** val repr_adt : char list -> term -> term **)
-
-let repr_adt _UU03b4_ t =
-  TApp ((f_repr_adt _UU03b4_), None, (t :: []))
-
 (** val f_lfunc : char list -> identifier **)
 
 let f_lfunc f =
@@ -4756,11 +4356,6 @@ let lfunc_pre_ f ts x =
 
 let c_null =
   IdSym ('n'::('u'::('l'::('l'::[]))))
-
-(** val null : term **)
-
-let null =
-  TApp (c_null, None, [])
 
 (** val c_null_val : identifier **)
 
@@ -4811,6 +4406,16 @@ let c_list_val =
 
 let c_adt_val _UU03b4_ =
   IdSym (append ('a'::('d'::('t'::[]))) _UU03b4_)
+
+(** val c_some_val : identifier **)
+
+let c_some_val =
+  IdSym ('S'::('o'::('m'::('e'::[]))))
+
+(** val null : term **)
+
+let null =
+  TApp (c_null, None, [])
 
 (** val null_val_of : term -> term **)
 
@@ -4867,11 +4472,6 @@ let list_val t =
 let adt_val _UU03b4_ t =
   TApp ((c_adt_val _UU03b4_), None, (t :: []))
 
-(** val c_some_val : identifier **)
-
-let c_some_val =
-  IdSym ('S'::('o'::('m'::('e'::[]))))
-
 (** val c_constructor_adt : char list -> identifier **)
 
 let c_constructor_adt c =
@@ -4893,24 +4493,21 @@ let constructors_for_adt_sort_map =
     let s__UU03b4_ = s_adt _UU03b4_ in
     let prev =
       from_option (Obj.magic id)
-        (empty0 (gset_empty identifier_eq_decision identifier_countable))
-        (lookup0 (gmap_lookup identifier_eq_decision identifier_countable)
+        (empty0 (gset_empty identifier_decision identifier_countable))
+        (lookup0 (gmap_lookup identifier_decision identifier_countable)
           s__UU03b4_ m)
     in
     insert0
       (map_insert
-        (Obj.magic gmap_partial_alter identifier_eq_decision
-          identifier_countable))
-      s__UU03b4_
-      (union0 (gset_union identifier_eq_decision identifier_countable) prev
-        (singleton0
-          (gset_singleton identifier_eq_decision identifier_countable)
-          (c_constructor_adt c)))
-      m
+        (Obj.magic gmap_partial_alter identifier_decision
+          identifier_countable)) s__UU03b4_
+      (union0 (gset_union identifier_decision identifier_countable) prev
+        (singleton0 (gset_singleton identifier_decision identifier_countable)
+          (c_constructor_adt c))) m
   in
   map_fold (fun _ -> gmap_fold String.eq_dec String.countable)
     (Obj.magic update)
-    (empty0 (gmap_empty identifier_eq_decision identifier_countable))
+    (empty0 (gmap_empty identifier_decision identifier_countable))
     (gmap_empty String.eq_dec String.countable)
 
 (** val g_null_val : identifier **)
@@ -4953,6 +4550,11 @@ let g_list_val =
 let g_adt_val _UU03b4_ =
   IdSym (append ('g'::('e'::('t'::('A'::('D'::('T'::[])))))) _UU03b4_)
 
+(** val g_some_val : identifier **)
+
+let g_some_val =
+  IdSym ('g'::('e'::('t'::('S'::('o'::('m'::('e'::[])))))))
+
 (** val get_null_val : term -> term **)
 
 let get_null_val t =
@@ -4987,11 +4589,6 @@ let get_list_val t =
 
 let get_adt_val _UU03b4_ t =
   TApp ((g_adt_val _UU03b4_), None, (t :: []))
-
-(** val g_some_val : identifier **)
-
-let g_some_val =
-  IdSym ('g'::('e'::('t'::('S'::('o'::('m'::('e'::[])))))))
 
 (** val get_some_val : term -> term **)
 
@@ -5048,6 +4645,11 @@ let p_list_val =
 let p_adt_val _UU03b4_ =
   identifier_add_prefix ('i'::('s'::('-'::[]))) (c_adt_val _UU03b4_)
 
+(** val p_some_val : identifier **)
+
+let p_some_val =
+  identifier_add_prefix ('i'::('s'::('-'::[]))) c_some_val
+
 (** val is_null_val : term -> term **)
 
 let is_null_val t =
@@ -5098,47 +4700,10 @@ let is_list_val t =
 let is_adt_val _UU03b4_ t =
   TApp ((p_adt_val _UU03b4_), None, (t :: []))
 
-(** val p_some_val : identifier **)
-
-let p_some_val =
-  identifier_add_prefix ('i'::('s'::('-'::[]))) c_some_val
-
 (** val is_some_val : term -> term **)
 
 let is_some_val t =
   TApp (p_some_val, None, (t :: []))
-
-(** val p_constructor_adt : char list -> identifier **)
-
-let p_constructor_adt c =
-  identifier_add_prefix ('i'::('s'::('-'::[]))) (c_constructor_adt c)
-
-(** val is_constructor_adt : char list -> term -> term **)
-
-let is_constructor_adt c t =
-  TApp ((p_constructor_adt c), None, (t :: []))
-
-(** val tester_for_constructor_adt_map : (identifier, identifier) gmap **)
-
-let tester_for_constructor_adt_map =
-  let update = fun c _ m ->
-    insert0
-      (map_insert
-        (gmap_partial_alter identifier_eq_decision identifier_countable))
-      (c_constructor_adt c) (p_constructor_adt c) m
-  in
-  map_fold (fun _ -> gmap_fold String.eq_dec String.countable) update
-    (empty0 (gmap_empty identifier_eq_decision identifier_countable))
-    (gmap_empty String.eq_dec String.countable)
-
-(** val lookup_tester_for_constructor_adt : identifier -> identifier gset **)
-
-let lookup_tester_for_constructor_adt c =
-  match lookup0 (gmap_lookup identifier_eq_decision identifier_countable) c
-          tester_for_constructor_adt_map with
-  | Some p ->
-    singleton0 (gset_singleton identifier_eq_decision identifier_countable) p
-  | None -> empty0 (gset_empty identifier_eq_decision identifier_countable)
 
 (** val is_type : type0 -> term -> term **)
 
@@ -5159,8 +4724,7 @@ let rec is_type _UU03c4_ t =
     let fresh_var =
       fresh0
         (set_fresh (gset_elements String.eq_dec String.countable)
-          string_infinite)
-        (fv t)
+          string_infinite) (fv t)
     in
     let i = TFVar fresh_var in
     let in_bounds = and_ (geq_ i zero_int) (lt_ i (seq_len t')) in
@@ -5169,30 +4733,37 @@ let rec is_type _UU03c4_ t =
     and_ (is_list_val t) (TForall (_UU03c3__int,
       (term_close (fresh_var :: []) 0 elem_type_check)))
 
-(** val repr_list_body : (term -> term) -> term -> term **)
+(** val p_constructor_adt : char list -> identifier **)
 
-let repr_list_body repr_elem t =
-  let i_var =
-    fresh0
-      (set_fresh (gset_elements String.eq_dec String.countable)
-        string_infinite)
-      (fv t)
+let p_constructor_adt c =
+  identifier_add_prefix ('i'::('s'::('-'::[]))) (c_constructor_adt c)
+
+(** val is_constructor_adt : char list -> term -> term **)
+
+let is_constructor_adt c t =
+  TApp ((p_constructor_adt c), None, (t :: []))
+
+(** val tester_for_constructor_adt_map : (identifier, identifier) gmap **)
+
+let tester_for_constructor_adt_map =
+  let update = fun c _ m ->
+    insert0
+      (map_insert
+        (gmap_partial_alter identifier_decision identifier_countable))
+      (c_constructor_adt c) (p_constructor_adt c) m
   in
-  let i = TFVar i_var in
-  let in_bounds = and_ (geq_ i zero_int) (lt_ i (seq_len t)) in
-  TForall (_UU03c3__int,
-  (term_close (i_var :: []) 0 (impl_ in_bounds (repr_elem (seq_nth t i)))))
+  map_fold (fun _ -> gmap_fold String.eq_dec String.countable) update
+    (empty0 (gmap_empty identifier_decision identifier_countable))
+    (gmap_empty String.eq_dec String.countable)
 
-(** val repr_type_guard : type0 -> term -> term **)
+(** val lookup_tester_for_constructor_adt : identifier -> identifier gset **)
 
-let rec repr_type_guard _UU03c4_ t =
-  match _UU03c4_ with
-  | TVal -> repr_val t
-  | TNat -> repr_nat t
-  | TRat -> repr_rat t
-  | TADT _UU03b4_ -> repr_adt _UU03b4_ t
-  | TList _UU03c4_0 -> repr_list_body (repr_type_guard _UU03c4_0) t
-  | _ -> true_
+let lookup_tester_for_constructor_adt c =
+  match lookup0 (gmap_lookup identifier_decision identifier_countable) c
+          tester_for_constructor_adt_map with
+  | Some p ->
+    singleton0 (gset_singleton identifier_decision identifier_countable) p
+  | None -> empty0 (gset_empty identifier_decision identifier_countable)
 
 (** val to_val_base :
     term -> sort -> term gset -> ((term * sort) * term gset) option **)
@@ -5255,7 +4826,7 @@ let rec to_val_curried t _UU03c3_ _UU03a6_ =
        (match l with
         | [] ->
           if decide
-               (decide_rel identifier_eq_decision s (IdSym
+               (decide_rel identifier_decision s (IdSym
                  ('S'::('e'::('q'::[])))))
           then let x =
                  fresh_string_of_set []
@@ -5287,8 +4858,7 @@ let guarded_val _UU03a6_ t =
   ite_
     (ands_
       (elements0 (gset_elements term_eq_decision term_countable) _UU03a6_)
-      true_)
-    t null_val
+      true_) t null_val
 
 (** val residual_guard : term gset -> term **)
 
@@ -5318,8 +4888,7 @@ let list_coercion_residual input elem_var _UU03a6__elem =
     term_subst
       (singletonM0
         (map_singleton (gmap_partial_alter String.eq_dec String.countable)
-          (gmap_empty String.eq_dec String.countable))
-        elem_var elem)
+          (gmap_empty String.eq_dec String.countable)) elem_var elem)
       (residual_guard _UU03a6__elem)
   in
   TForall (_UU03c3__int,
@@ -5343,8 +4912,8 @@ let to_null = function
             (is_null_val t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_null_val t_some), _UU03c3__null),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_null_val t_some), _UU03c3__null),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5417,8 +4986,8 @@ let to_bool = function
             (is_bool_val t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_bool_val t_some), _UU03c3__bool),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_bool_val t_some), _UU03c3__bool),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5446,8 +5015,8 @@ let to_nat0 = function
             (is_nat_val t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_nat_val t_some), _UU03c3__int),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_nat_val t_some), _UU03c3__int),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5475,8 +5044,8 @@ let to_rat = function
             (is_rat_val t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_rat_val t_some), _UU03c3__real),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_rat_val t_some), _UU03c3__real),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5504,8 +5073,8 @@ let to_string = function
             (is_string_val t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_string_val t_some), _UU03c3__string),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_string_val t_some), _UU03c3__string),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5534,9 +5103,8 @@ let to_adt _UU03b4_ = function
             (is_adt_val _UU03b4_ t))))
         (singletonM0
           (map_singleton (gmap_partial_alter sort_eq_decision sort_countable)
-            (gmap_empty sort_eq_decision sort_countable))
-          _UU03c3__maybe_val (((get_adt_val _UU03b4_ t_some),
-          (_UU03c3__adt _UU03b4_)),
+            (gmap_empty sort_eq_decision sort_countable)) _UU03c3__maybe_val
+          (((get_adt_val _UU03b4_ t_some), (_UU03c3__adt _UU03b4_)),
           (union0 (gset_union term_eq_decision term_countable)
             (union0 (gset_union term_eq_decision term_countable) _UU03a6_
               (singleton0 (gset_singleton term_eq_decision term_countable)
@@ -5553,8 +5121,7 @@ let to_type_curried_list_binder _UU03a6_ t =
     (union0 (gset_union String.eq_dec String.countable)
       (set_bind (gset_elements term_eq_decision term_countable)
         (gset_empty String.eq_dec String.countable)
-        (gset_union String.eq_dec String.countable) fv _UU03a6_)
-      (fv t))
+        (gset_union String.eq_dec String.countable) fv _UU03a6_) (fv t))
 
 (** val to_type_curried :
     type0 -> term -> sort -> term gset -> ((term * sort) * term gset) option **)
@@ -5578,7 +5145,7 @@ let rec to_type_curried _UU03c4_ t _UU03c3_ _UU03a6_ =
        (match _UU03c4_s with
         | [] ->
           if decide
-               (decide_rel identifier_eq_decision s (IdSym
+               (decide_rel identifier_decision s (IdSym
                  ('V'::('a'::('l'::[])))))
           then let x = to_type_curried_list_binder _UU03a6_ t in
                let elem = TFVar x in
@@ -5657,7 +5224,7 @@ let rec to_type_curried _UU03c4_ t _UU03c3_ _UU03a6_ =
                       (to_type_curried t0 elem _UU03c3_' _UU03a6_))
                (guard_or () (Obj.magic (fun _ -> option_mfail))
                  (Obj.magic (fun _ -> option_ret))
-                 (decide_rel identifier_eq_decision s (IdSym
+                 (decide_rel identifier_decision s (IdSym
                    ('S'::('e'::('q'::[]))))))
            | _ :: _ -> None)))
 
@@ -5724,12 +5291,11 @@ let rec encode_preval = function
         Some (((constructor_adt c None ts), (_UU03c3__adt _UU03b4_')),
         (union_list (gset_empty term_eq_decision term_countable)
           (gset_union term_eq_decision term_countable) _UU03a6_s)))
-        (Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+        (mapM (Obj.magic (fun _ _ -> option_bind))
           (Obj.magic (fun _ -> option_ret)) (Obj.magic id)
           (zip_with (fun v0 _UU03c4_ ->
             mbind (Obj.magic (fun _ _ -> option_bind)) (to_type _UU03c4_)
-              (encode_preval v0))
-            vs _UU03c4_s)))
+              (encode_preval v0)) vs _UU03c4_s)))
       (guard_or () (Obj.magic (fun _ -> option_mfail))
         (Obj.magic (fun _ -> option_ret))
         (decide_rel Coq_Nat.eq_dec (length vs) (length _UU03c4_s))))
@@ -5745,8 +5311,7 @@ let rec encode_preval = function
         let (t', _) = y0 in
         Some (((seq_concat (seq_unit t') t), _UU03c3__list),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_
-          _UU03a6_')))
-        acc)
+          _UU03a6_'))) acc)
       (mbind (Obj.magic (fun _ _ -> option_bind)) to_val (encode_preval v0)))
     (Some (((seq_empty _UU03c3__val), _UU03c3__list),
     (empty0 (gset_empty term_eq_decision term_countable)))) vs
@@ -5801,9 +5366,7 @@ let encode_op2 op enc1 enc2 =
                   let (t4, _) = y0 in
                   Some (((eq_ t3 t4), _UU03c3__bool),
                   (union0 (gset_union term_eq_decision term_countable)
-                    _UU03a6_3 _UU03a6_4)))
-                  (to_val enc2))
-                (to_val enc1)
+                    _UU03a6_3 _UU03a6_4))) (to_val enc2)) (to_val enc1)
          else Some (((eq_ t1 t2), _UU03c3__bool),
                 (union0 (gset_union term_eq_decision term_countable)
                   _UU03a6_1 _UU03a6_2))
@@ -5815,9 +5378,7 @@ let encode_op2 op enc1 enc2 =
              let (t4, _) = y0 in
              Some (((eq_ t3 t4), _UU03c3__bool),
              (union0 (gset_union term_eq_decision term_countable) _UU03a6_3
-               _UU03a6_4)))
-             (to_val enc2))
-           (to_val enc1)
+               _UU03a6_4))) (to_val enc2)) (to_val enc1)
   | Op2And ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5827,9 +5388,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((and_ t1 t2), _UU03c3__bool),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_bool enc2))
-      (to_bool enc1)
+          _UU03a6_2))) (to_bool enc2)) (to_bool enc1)
   | Op2Add ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5839,9 +5398,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((plus_ t1 t2), _UU03c3__int),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_nat0 enc2))
-      (to_nat0 enc1)
+          _UU03a6_2))) (to_nat0 enc2)) (to_nat0 enc1)
   | Op2Sub ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5852,9 +5409,7 @@ let encode_op2 op enc1 enc2 =
         let diff = minus_ t1 t2 in
         Some (((ite_ (lt_ diff zero_int) zero_int diff), _UU03c3__int),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_nat0 enc2))
-      (to_nat0 enc1)
+          _UU03a6_2))) (to_nat0 enc2)) (to_nat0 enc1)
   | Op2Div ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5867,9 +5422,7 @@ let encode_op2 op enc1 enc2 =
           (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
             _UU03a6_2)
           (singleton0 (gset_singleton term_eq_decision term_countable)
-            (not_ (eq_ t2 zero_int))))))
-        (to_nat0 enc2))
-      (to_nat0 enc1)
+            (not_ (eq_ t2 zero_int)))))) (to_nat0 enc2)) (to_nat0 enc1)
   | Op2Mod ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5882,9 +5435,7 @@ let encode_op2 op enc1 enc2 =
           (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
             _UU03a6_2)
           (singleton0 (gset_singleton term_eq_decision term_countable)
-            (not_ (eq_ t2 zero_int))))))
-        (to_nat0 enc2))
-      (to_nat0 enc1)
+            (not_ (eq_ t2 zero_int)))))) (to_nat0 enc2)) (to_nat0 enc1)
   | Op2Lt ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5894,9 +5445,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((lt_ t1 t2), _UU03c3__bool),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_nat0 enc2))
-      (to_nat0 enc1)
+          _UU03a6_2))) (to_nat0 enc2)) (to_nat0 enc1)
   | Op2Cons ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5906,9 +5455,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((seq_concat (seq_unit t1) t2), _UU03c3__list),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_list TVal enc2))
-      (to_val enc1)
+          _UU03a6_2))) (to_list TVal enc2)) (to_val enc1)
   | Op2In ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5918,9 +5465,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((seq_contains t2 (seq_unit t1)), _UU03c3__bool),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_list TVal enc2))
-      (to_val enc1)
+          _UU03a6_2))) (to_list TVal enc2)) (to_val enc1)
   | Op2RAdd ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5930,9 +5475,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((plus_ t1 t2), _UU03c3__real),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_rat enc2))
-      (to_rat enc1)
+          _UU03a6_2))) (to_rat enc2)) (to_rat enc1)
   | Op2RSub ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5940,14 +5483,10 @@ let encode_op2 op enc1 enc2 =
         let (t1, _) = y in
         let (y0, _UU03a6_2) = enc2' in
         let (t2, _) = y0 in
-        Some (((minus_ t1 t2), _UU03c3__real),
-        (union0 (gset_union term_eq_decision term_countable)
-          (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-            _UU03a6_2)
-          (singleton0 (gset_singleton term_eq_decision term_countable)
-            (lt_ t2 t1)))))
-        (to_rat enc2))
-      (to_rat enc1)
+        let diff = minus_ t1 t2 in
+        Some (((ite_ (lt_ diff zero_real) zero_real diff), _UU03c3__real),
+        (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
+          _UU03a6_2))) (to_rat enc2)) (to_rat enc1)
   | Op2RDiv ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5960,9 +5499,7 @@ let encode_op2 op enc1 enc2 =
           (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
             _UU03a6_2)
           (singleton0 (gset_singleton term_eq_decision term_countable)
-            (not_ (eq_ t2 zero_real))))))
-        (to_rat enc2))
-      (to_rat enc1)
+            (not_ (eq_ t2 zero_real)))))) (to_rat enc2)) (to_rat enc1)
   | Op2RLt ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5972,9 +5509,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((lt_ t1 t2), _UU03c3__bool),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_rat enc2))
-      (to_rat enc1)
+          _UU03a6_2))) (to_rat enc2)) (to_rat enc1)
   | Op2RLe ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5984,9 +5519,7 @@ let encode_op2 op enc1 enc2 =
         let (t2, _) = y0 in
         Some (((leq_ t1 t2), _UU03c3__bool),
         (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
-          _UU03a6_2)))
-        (to_rat enc2))
-      (to_rat enc1)
+          _UU03a6_2))) (to_rat enc2)) (to_rat enc1)
 
 (** val encode_sexp_list :
     (char list, type0) gmap -> sexp list -> ((char list, type0) gmap -> sexp
@@ -6026,8 +5559,7 @@ let rec encode_sexp_match_cases t _UU03b4_ t0 pes encode0 =
          let x =
            fresh0
              (set_fresh (gset_elements String.eq_dec String.countable)
-               string_infinite)
-             (lV_sexp s)
+               string_infinite) (lV_sexp s)
          in
          let e' = sexp_open 0 ((SEFLVar x) :: []) s in
          mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc ->
@@ -6043,10 +5575,8 @@ let rec encode_sexp_match_cases t _UU03b4_ t0 pes encode0 =
              (Obj.magic encode0
                (insert0
                  (map_insert
-                   (gmap_partial_alter String.eq_dec String.countable))
-                 x (TADT _UU03b4_) t)
-               s e' __ __)))
-         pts_res__UU03a6_s_opt
+                   (gmap_partial_alter String.eq_dec String.countable)) x
+                 (TADT _UU03b4_) t) s e' __ __))) pts_res__UU03a6_s_opt
      | PatCtor ctor ->
        let pts_res__UU03a6_s_opt =
          encode_sexp_match_cases t _UU03b4_ t0 l (fun t1 e e' _ _ ->
@@ -6082,9 +5612,8 @@ let rec encode_sexp_match_cases t _UU03b4_ t0 pes encode0 =
                      (map_insert
                        (gmap_partial_alter String.eq_dec String.countable))
                      (gmap_empty String.eq_dec String.countable)
-                     (zip_with (fun x x0 -> (x, x0)) xs _UU03c4_s))
-                   t)
-                 s e' __ __)))
+                     (zip_with (fun x x0 -> (x, x0)) xs _UU03c4_s)) t) s e'
+                 __ __)))
            (lookup0 (Obj.magic gmap_lookup String.eq_dec String.countable)
              ctor (gmap_empty String.eq_dec String.countable)))
          pts_res__UU03a6_s_opt)
@@ -6119,7 +5648,7 @@ let encode_sexp a b =
                  Some (((constructor_adt ctor None ts), (_UU03c3__adt adt)),
                  (union_list (gset_empty term_eq_decision term_countable)
                    (gset_union term_eq_decision term_countable) _UU03a6_s)))
-                 (Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+                 (mapM (Obj.magic (fun _ _ -> option_bind))
                    (Obj.magic (fun _ -> option_ret)) (uncurry to_type)
                    (zip_with (fun x0 x1 -> (x0, x1)) _UU03c4_s encs')))
                (Obj.magic encode_sexp_list t es (fun t0 e _ ->
@@ -6148,7 +5677,7 @@ let encode_sexp a b =
            Some (((mk_list ts), _UU03c3__list),
            (union_list (gset_empty term_eq_decision term_countable)
              (gset_union term_eq_decision term_countable) _UU03a6_s)))
-           (Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+           (mapM (Obj.magic (fun _ _ -> option_bind))
              (Obj.magic (fun _ -> option_ret)) to_val encs'))
          (Obj.magic encode_sexp_list t es (fun t0 e _ ->
            encode_sexp0 t0 e __))
@@ -6166,18 +5695,13 @@ let encode_sexp a b =
                  map (fun pat -> let (_, _UU03a6_) = pat in _UU03a6_) encs
                in
                let pre = lfunc_pre_ f None ts in
-               let call = lfunc_ f None ts in
-               Some ((call, (encode_type fdata.lfunc_ret_ty)),
+               Some (((lfunc_ f None ts), (encode_type fdata.lfunc_ret_ty)),
                (union0 (gset_union term_eq_decision term_countable)
-                 (union0 (gset_union term_eq_decision term_countable)
-                   (singleton0
-                     (gset_singleton term_eq_decision term_countable) pre)
-                   (singleton0
-                     (gset_singleton term_eq_decision term_countable)
-                     (repr_type_guard fdata.lfunc_ret_ty call)))
+                 (singleton0 (gset_singleton term_eq_decision term_countable)
+                   pre)
                  (union_list (gset_empty term_eq_decision term_countable)
                    (gset_union term_eq_decision term_countable) _UU03a6_s))))
-               (Coq0_list.mapM (Obj.magic (fun _ _ -> option_bind))
+               (mapM (Obj.magic (fun _ _ -> option_bind))
                  (Obj.magic (fun _ -> option_ret)) (uncurry to_type)
                  (zip_with (fun x0 x1 -> (x0, x1)) _UU03c4_s encs')))
              (Obj.magic encode_sexp_list t es (fun t0 e _ ->
@@ -6207,9 +5731,7 @@ let encode_sexp a b =
                     (((ands_
                         (elements0
                           (gset_elements term_eq_decision term_countable)
-                          _UU03a6_)
-                        (is_type t0 t1)),
-                    _UU03c3__bool),
+                          _UU03a6_) (is_type t0 t1)), _UU03c3__bool),
                     (empty0 (gset_empty term_eq_decision term_countable)))
              else Some ((false_, _UU03c3__bool),
                     (empty0 (gset_empty term_eq_decision term_countable)))
@@ -6232,8 +5754,7 @@ let encode_sexp a b =
                 (((ands_
                     (elements0
                       (gset_elements term_eq_decision term_countable)
-                      _UU03a6_)
-                    (is_constructor_adt ctor t0)),
+                      _UU03a6_) (is_constructor_adt ctor t0)),
                 _UU03c3__bool),
                 (empty0 (gset_empty term_eq_decision term_countable)))
               | None ->
@@ -6256,46 +5777,40 @@ let encode_sexp a b =
              let residual_pts' = app residual_pts ((PVar, true_) :: []) in
              let p_ctors =
                list_to_set
-                 (Obj.magic gset_singleton identifier_eq_decision
+                 (Obj.magic gset_singleton identifier_decision
                    identifier_countable)
-                 (gset_empty identifier_eq_decision identifier_countable)
-                 (gset_union identifier_eq_decision identifier_countable)
-                 (omap (Obj.magic (fun _ _ -> Coq0_list.list_omap))
-                   pattern_constructor
-                   (fmap (Obj.magic (fun _ _ -> Coq0_list.list_fmap)) fst
-                     pts'))
+                 (gset_empty identifier_decision identifier_countable)
+                 (gset_union identifier_decision identifier_countable)
+                 (omap (Obj.magic (fun _ _ -> list_omap)) pattern_constructor
+                   (fmap (Obj.magic (fun _ _ -> list_fmap)) fst pts'))
              in
              mbind (Obj.magic (fun _ _ -> option_bind))
                (fun _UU03b4__ctors ->
                let missed_ctors =
                  filter0 (fun _ ->
                    set_filter
-                     (gset_elements identifier_eq_decision
-                       identifier_countable)
-                     (gset_empty identifier_eq_decision identifier_countable)
-                     (gset_singleton identifier_eq_decision
-                       identifier_countable)
-                     (gset_union identifier_eq_decision identifier_countable))
+                     (gset_elements identifier_decision identifier_countable)
+                     (gset_empty identifier_decision identifier_countable)
+                     (gset_singleton identifier_decision identifier_countable)
+                     (gset_union identifier_decision identifier_countable))
                    (fun x0 ->
                    not_dec
                      (decide_rel
-                       (gset_elem_of_dec identifier_eq_decision
-                         identifier_countable)
-                       x0 p_ctors))
-                   _UU03b4__ctors
+                       (gset_elem_of_dec identifier_decision
+                         identifier_countable) x0 p_ctors)) _UU03b4__ctors
                in
                let testers =
                  set_bind
-                   (gset_elements identifier_eq_decision identifier_countable)
-                   (gset_empty identifier_eq_decision identifier_countable)
-                   (gset_union identifier_eq_decision identifier_countable)
+                   (gset_elements identifier_decision identifier_countable)
+                   (gset_empty identifier_decision identifier_countable)
+                   (gset_union identifier_decision identifier_countable)
                    lookup_tester_for_constructor_adt missed_ctors
                in
                let not_missed_ctors =
                  if sexp_match_cases_has_patvar cases
                  then empty0 (gset_empty term_eq_decision term_countable)
                  else set_map
-                        (gset_elements identifier_eq_decision
+                        (gset_elements identifier_decision
                           identifier_countable)
                         (gset_singleton term_eq_decision term_countable)
                         (gset_empty term_eq_decision term_countable)
@@ -6307,8 +5822,7 @@ let encode_sexp a b =
                  (union0 (gset_union term_eq_decision term_countable)
                    (union0 (gset_union term_eq_decision term_countable)
                      (union0 (gset_union term_eq_decision term_countable)
-                       _UU03a6_ _UU03a6_s)
-                     not_missed_ctors)
+                       _UU03a6_ _UU03a6_s) not_missed_ctors)
                    (singleton0
                      (gset_singleton term_eq_decision term_countable) (TMatch
                      (t0, residual_pts'))))))
@@ -6319,16 +5833,15 @@ let encode_sexp a b =
                        (sexp_match_cases_has_patvar cases) true)
                      (not_dec
                        (decide_rel
-                         (gset_eq_dec identifier_eq_decision
-                           identifier_countable)
-                         p_ctors
+                         (gset_eq_dec identifier_decision
+                           identifier_countable) p_ctors
                          (empty0
-                           (gset_empty identifier_eq_decision
+                           (gset_empty identifier_decision
                              identifier_countable)))))))
                (lookup0
-                 (Obj.magic gmap_lookup identifier_eq_decision
-                   identifier_countable)
-                 (s_adt adt_t) constructors_for_adt_sort_map))
+                 (Obj.magic gmap_lookup identifier_decision
+                   identifier_countable) (s_adt adt_t)
+                 constructors_for_adt_sort_map))
              (Obj.magic encode_sexp_match_cases t adt_t t0 cases
                (fun t1 _ e' _ _ -> encode_sexp0 t1 e' __)))
            (mbind (Obj.magic (fun _ _ -> option_bind)) (to_adt adt_t)
