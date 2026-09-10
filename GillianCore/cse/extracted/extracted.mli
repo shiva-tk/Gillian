@@ -764,19 +764,26 @@ type val0 = preval
 type op1 =
 | Op1Not
 | Op1Length
+| Op1IsInt
+| Op1AsInt
+| Op1AsNum
 
 type op2 =
 | Op2Eq
 | Op2And
 | Op2Add
 | Op2Sub
+| Op2Mul
 | Op2Div
 | Op2Mod
 | Op2Lt
 | Op2Cons
 | Op2In
+| Op2Cat
+| Op2Nth
 | Op2RAdd
 | Op2RSub
+| Op2RMul
 | Op2RDiv
 | Op2RLt
 | Op2RLe
@@ -955,6 +962,8 @@ val f_minus : identifier
 
 val f_plus : identifier
 
+val f_times : identifier
+
 val f_idiv : identifier
 
 val f_div : identifier
@@ -967,6 +976,12 @@ val f_lt : identifier
 
 val f_geq : identifier
 
+val f_to_real : identifier
+
+val f_to_int : identifier
+
+val f_is_int : identifier
+
 val f_int_literal : z -> identifier
 
 val f_decimal_literal : qc -> identifier
@@ -974,6 +989,8 @@ val f_decimal_literal : qc -> identifier
 val minus_ : term -> term -> term
 
 val plus_ : term -> term -> term
+
+val times_ : term -> term -> term
 
 val idiv_ : term -> term -> term
 
@@ -986,6 +1003,12 @@ val leq_ : term -> term -> term
 val lt_ : term -> term -> term
 
 val geq_ : term -> term -> term
+
+val to_real : term -> term
+
+val to_int : term -> term
+
+val is_int : term -> term
 
 val int_literal : z -> term
 

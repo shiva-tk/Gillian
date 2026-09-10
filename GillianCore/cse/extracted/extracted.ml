@@ -3440,19 +3440,26 @@ type val0 = preval
 type op1 =
 | Op1Not
 | Op1Length
+| Op1IsInt
+| Op1AsInt
+| Op1AsNum
 
 type op2 =
 | Op2Eq
 | Op2And
 | Op2Add
 | Op2Sub
+| Op2Mul
 | Op2Div
 | Op2Mod
 | Op2Lt
 | Op2Cons
 | Op2In
+| Op2Cat
+| Op2Nth
 | Op2RAdd
 | Op2RSub
+| Op2RMul
 | Op2RDiv
 | Op2RLt
 | Op2RLe
@@ -4220,6 +4227,11 @@ let f_minus =
 let f_plus =
   IdSym ('+'::[])
 
+(** val f_times : identifier **)
+
+let f_times =
+  IdSym ('*'::[])
+
 (** val f_idiv : identifier **)
 
 let f_idiv =
@@ -4250,6 +4262,21 @@ let f_lt =
 let f_geq =
   IdSym ('>'::('='::[]))
 
+(** val f_to_real : identifier **)
+
+let f_to_real =
+  IdSym ('t'::('o'::('_'::('r'::('e'::('a'::('l'::[])))))))
+
+(** val f_to_int : identifier **)
+
+let f_to_int =
+  IdSym ('t'::('o'::('_'::('i'::('n'::('t'::[]))))))
+
+(** val f_is_int : identifier **)
+
+let f_is_int =
+  IdSym ('i'::('s'::('_'::('i'::('n'::('t'::[]))))))
+
 (** val f_int_literal : z -> identifier **)
 
 let f_int_literal i =
@@ -4276,6 +4303,11 @@ let minus_ t1 t2 =
 
 let plus_ t1 t2 =
   TApp (f_plus, None, (t1 :: (t2 :: [])))
+
+(** val times_ : term -> term -> term **)
+
+let times_ t1 t2 =
+  TApp (f_times, None, (t1 :: (t2 :: [])))
 
 (** val idiv_ : term -> term -> term **)
 
@@ -4306,6 +4338,21 @@ let lt_ t1 t2 =
 
 let geq_ t1 t2 =
   TApp (f_geq, None, (t1 :: (t2 :: [])))
+
+(** val to_real : term -> term **)
+
+let to_real t =
+  TApp (f_to_real, None, (t :: []))
+
+(** val to_int : term -> term **)
+
+let to_int t =
+  TApp (f_to_int, None, (t :: []))
+
+(** val is_int : term -> term **)
+
+let is_int t =
+  TApp (f_is_int, None, (t :: []))
 
 (** val int_literal : z -> term **)
 
@@ -5779,6 +5826,25 @@ let encode_op1 op enc =
       let (y, _UU03a6_) = enc' in
       let (t, _) = y in Some (((seq_len t), _UU03c3__int), _UU03a6_))
       (to_list TVal enc)
+  | Op1IsInt ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc' ->
+      let (y, _UU03a6_) = enc' in
+      let (t, _) = y in Some (((is_int t), _UU03c3__bool), _UU03a6_))
+      (to_rat enc)
+  | Op1AsInt ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc' ->
+      let (y, _UU03a6_) = enc' in
+      let (t, _) = y in Some (((to_int t), _UU03c3__int), _UU03a6_))
+      (to_rat enc)
+  | Op1AsNum ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc' ->
+      let (y, _UU03a6_) = enc' in
+      let (t, _) = y in
+      Some (((to_real t), _UU03c3__real),
+      (union0 (gset_union term_eq_decision term_countable) _UU03a6_
+        (singleton0 (gset_singleton term_eq_decision term_countable)
+          (lt_ zero_int t)))))
+      (to_nat0 enc)
 
 (** val encode_op2 :
     op2 -> ((term * sort) * term gset) -> ((term * sort) * term gset) ->
@@ -5855,6 +5921,18 @@ let encode_op2 op enc1 enc2 =
           _UU03a6_2)))
         (to_nat0 enc2))
       (to_nat0 enc1)
+  | Op2Mul ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
+      mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
+        let (y, _UU03a6_1) = enc1' in
+        let (t1, _) = y in
+        let (y0, _UU03a6_2) = enc2' in
+        let (t2, _) = y0 in
+        Some (((times_ t1 t2), _UU03c3__int),
+        (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
+          _UU03a6_2)))
+        (to_nat0 enc2))
+      (to_nat0 enc1)
   | Op2Div ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5921,6 +5999,36 @@ let encode_op2 op enc1 enc2 =
           _UU03a6_2)))
         (to_list TVal enc2))
       (to_val enc1)
+  | Op2Cat ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
+      mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
+        let (y, _UU03a6_1) = enc1' in
+        let (t1, _) = y in
+        let (y0, _UU03a6_2) = enc2' in
+        let (t2, _) = y0 in
+        Some (((seq_concat t1 t2), _UU03c3__list),
+        (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
+          _UU03a6_2)))
+        (to_list TVal enc2))
+      (to_list TVal enc1)
+  | Op2Nth ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
+      mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
+        let (y, _UU03a6_1) = enc1' in
+        let (t1, _) = y in
+        let (y0, _UU03a6_2) = enc2' in
+        let (t2, _) = y0 in
+        Some (((seq_nth t1 t2), _UU03c3__val),
+        (union0 (gset_union term_eq_decision term_countable)
+          (union0 (gset_union term_eq_decision term_countable)
+            (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
+              _UU03a6_2)
+            (singleton0 (gset_singleton term_eq_decision term_countable)
+              (leq_ zero_int t2)))
+          (singleton0 (gset_singleton term_eq_decision term_countable)
+            (lt_ t2 (seq_len t1))))))
+        (to_nat0 enc2))
+      (to_list TVal enc1)
   | Op2RAdd ->
     mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
       mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
@@ -5946,6 +6054,18 @@ let encode_op2 op enc1 enc2 =
             _UU03a6_2)
           (singleton0 (gset_singleton term_eq_decision term_countable)
             (lt_ t2 t1)))))
+        (to_rat enc2))
+      (to_rat enc1)
+  | Op2RMul ->
+    mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc1' ->
+      mbind (Obj.magic (fun _ _ -> option_bind)) (fun enc2' ->
+        let (y, _UU03a6_1) = enc1' in
+        let (t1, _) = y in
+        let (y0, _UU03a6_2) = enc2' in
+        let (t2, _) = y0 in
+        Some (((times_ t1 t2), _UU03c3__real),
+        (union0 (gset_union term_eq_decision term_countable) _UU03a6_1
+          _UU03a6_2)))
         (to_rat enc2))
       (to_rat enc1)
   | Op2RDiv ->

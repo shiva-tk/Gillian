@@ -3,13 +3,17 @@ type t =
 | And
 | Add
 | Sub
+| Mul
 | Div
 | Mod
 | Lt
 | Cons
 | In
+| Cat
+| Nth
 | RAdd
 | RSub
+| RMul
 | RDiv
 | RLt
 | RLe

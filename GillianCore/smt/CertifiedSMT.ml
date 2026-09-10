@@ -89,6 +89,9 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
     match op with
     | Not -> Some Cse.Unop.Not
     | LstLen -> Some Cse.Unop.Length
+    | IsInt -> Some Cse.Unop.IsInt
+    | NumToInt -> Some Cse.Unop.AsInt
+    | IntToNum -> Some Cse.Unop.AsNum
     | _ -> None
 
   let diagnose_unop op =
@@ -102,13 +105,17 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
     | ILessThan -> Some Cse.Binop.Lt
     | IPlus -> Some Cse.Binop.Add
     | IMinus -> Some Cse.Binop.Sub
+    | ITimes -> Some Cse.Binop.Mul
     | IDiv -> Some Cse.Binop.Div
     | IMod -> Some Cse.Binop.Mod
     | FPlus -> Some Cse.Binop.RAdd
     | FMinus -> Some Cse.Binop.RSub
+    | FTimes -> Some Cse.Binop.RMul
     | FDiv -> Some Cse.Binop.RDiv
     | FLessThan -> Some Cse.Binop.RLt
     | FLessThanEqual -> Some Cse.Binop.RLe
+    (* GIL writes the list first, which is [Op2Nth]'s argument order too. *)
+    | LstNth -> Some Cse.Binop.Nth
     (* Boolean *)
     | And -> Some Cse.Binop.And
     | _ -> None
@@ -183,6 +190,20 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
             es (Some [])
         in
         Option.map (fun es -> Cse.Symbexp.List es) es
+    | NOp (LstCat, es) -> (
+        (* CSE's concatenation is binary; fold the n-ary GIL one into it.
+           The degenerate arities do not appear in the corpus but are still
+           the identity and the singleton. *)
+        match es with
+        | [] -> Some (Cse.Symbexp.List [])
+        | e :: es ->
+            List.fold_left
+              (fun acc e ->
+                match (acc, coerce_symbexp e) with
+                | Some acc, Some e ->
+                    Some (Cse.Symbexp.Binop (acc, Cse.Binop.Cat, e))
+                | _ -> None)
+              (coerce_symbexp e) es)
     | _ -> None
 
   let rec diagnose_symbexp (e : Expr.t) =
@@ -242,11 +263,18 @@ module C : Cse.Smt.Coerce with type exp = Expr.t and type typ = Type.t = struct
              | _, None -> None)
     | ESet _ -> Some "unsupported set expression"
     | LstSub _ -> Some "unsupported list-sub expression"
+    | NOp (LstCat, es) ->
+        List.mapi (fun i e -> (i, diagnose_symbexp e)) es
+        |> List.find_map (function
+             | i, Some reason ->
+                 Some
+                   (Fmt.str "list concatenation operand %d failed: %s" i reason)
+             | _, None -> None)
     | NOp (op, _) ->
         Some
           (Fmt.str
              "unsupported n-ary expression %s: certified coercion currently \
-              handles only EList list syntax"
+              handles only EList list syntax and LstCat"
              (NOp.str op))
     | Exists _ -> Some "unsupported existential quantifier"
     | ForAll _ -> Some "unsupported universal quantifier"

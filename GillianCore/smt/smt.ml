@@ -1132,18 +1132,37 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
       let unverified_run =
         run_encoded_assertions ~use_certified:false unverified_assertions
       in
+      (* The verified backend is observational: this function returns the
+         unverified run, so a failure on the verified side must not reach the
+         analysis.  It can fail two ways — the extracted encoder overflows the
+         stack on a deep term, and a query the solver rejects makes
+         [protected_command] restart it and raise — and either way the
+         exception used to escape and be reported as an analysis failure on a
+         proof that in fact succeeds. *)
+      let raised stage e =
+        [ ("stage", stage); ("exception", Printexc.to_string e) ]
+      in
       let verified_encoding =
-        CertifiedSMT.Smt.encode_with_diagnostics gamma (Expr.Set.to_list fs)
+        try CertifiedSMT.Smt.encode_with_diagnostics gamma (Expr.Set.to_list fs)
+        with e ->
+          {
+            CertifiedSMT.Smt.coerced = true;
+            encoded = None;
+            coercion_failures = [];
+            encoding_failures = [ raised "encode" e ];
+          }
       in
       let verified_query =
         Option.map
           (query_of_assertions ~use_certified:true)
           verified_encoding.encoded
       in
-      let verified_run =
-        Option.map
-          (run_encoded_assertions ~use_certified:true)
-          verified_encoding.encoded
+      let verified_run, solve_failures =
+        match verified_encoding.encoded with
+        | None -> (None, [])
+        | Some encoded -> (
+            try (Some (run_encoded_assertions ~use_certified:true encoded), [])
+            with e -> (None, [ raised "solve" e ]))
       in
       let unverified_json =
         Certified_experiment.backend_json ~result:(Some unverified_run.result)
@@ -1153,7 +1172,8 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
         Certified_experiment.backend_json ~coerced:verified_encoding.coerced
           ~encoded:(Option.is_some verified_encoding.encoded)
           ~coercion_failures:verified_encoding.coercion_failures
-          ~encoding_failures:verified_encoding.encoding_failures
+          ~encoding_failures:
+            (verified_encoding.encoding_failures @ solve_failures)
           ~result:(Option.map (fun run -> run.result) verified_run)
           ~time:(Option.map (fun run -> run.elapsed) verified_run)
           ~query:verified_query ()

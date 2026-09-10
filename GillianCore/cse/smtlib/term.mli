@@ -1,6 +1,9 @@
 type t =
   | Var of string
-  | App of (Sexplib.Sexp.t * t list)
+  (* The optional sort is SMT-LIB's [(as f σ)] qualifier: a polymorphic
+     symbol whose sort the arguments do not determine — [seq.empty] is the
+     only one the encoder emits — is ill-formed without it. *)
+  | App of (Sexplib.Sexp.t * Sort.t option * t list)
   | Fun of (string * Sort.t * t)
   | Exists of (string * Sort.t * t)
   | Forall of (string * Sort.t * t)

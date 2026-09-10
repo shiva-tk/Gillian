@@ -2,7 +2,10 @@ open Extraction_utils
 
 type t =
   | Var of string
-  | App of (Sexplib.Sexp.t * t list)
+  (* The optional sort is SMT-LIB's [(as f σ)] qualifier: a polymorphic
+     symbol whose sort the arguments do not determine — [seq.empty] is the
+     only one the encoder emits — is ill-formed without it. *)
+  | App of (Sexplib.Sexp.t * Sort.t option * t list)
   | Fun of (string * Sort.t * t)
   | Exists of (string * Sort.t * t)
   | Forall of (string * Sort.t * t)
@@ -17,9 +20,10 @@ let rec from_extracted (t : Extracted.term) : t =
      Var (Utils.string_from_char_list x)
   | TBVar (_, _) ->
      failwith "Term.from_extracted: encountered a term that was not locally closed."
-  | TApp (f, _s, ts) ->
+  | TApp (f, s, ts) ->
      App
        (Utils.sexp_of_identifier f,
+        Option.map Sort.from_extracted s,
         (List.map from_extracted ts))
   | TFun (s, t) ->
      let s' = Sort.from_extracted s in
@@ -68,11 +72,16 @@ let rec to_sexp t =
   let open Sexplib in
   match t with
   | Var x -> Sexp.Atom (sanitise_var x)
-  | App (f, ts) ->
+  | App (f, s, ts) ->
+    let head =
+      match s with
+      | None -> f
+      | Some s -> Sexp.List [Sexp.Atom "as"; f; Sort.to_sexp s]
+    in
     (* [List.is_empty] is OCaml 5.1; the project switch is 4.14. *)
     (match ts with
-     | [] -> f
-     | _ -> Sexp.List (f :: (List.map to_sexp ts)))
+     | [] -> head
+     | _ -> Sexp.List (head :: (List.map to_sexp ts)))
   | Fun (x, s, t) ->
      let binder = Sexp.List [Sexp.Atom (sanitise_var x); Sort.to_sexp s] in
      let binders = Sexp.List [binder] in
