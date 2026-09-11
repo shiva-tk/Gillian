@@ -1139,8 +1139,10 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
          [protected_command] restart it and raise — and either way the
          exception used to escape and be reported as an analysis failure on a
          proof that in fact succeeds. *)
+      (* Same shape as the diagnostics [encode_with_diagnostics] builds: a
+         [stage] and a [reason], so that every consumer can key on one field. *)
       let raised stage e =
-        [ ("stage", stage); ("exception", Printexc.to_string e) ]
+        [ ("stage", stage); ("reason", Printexc.to_string e) ]
       in
       let verified_encoding =
         try CertifiedSMT.Smt.encode_with_diagnostics gamma (Expr.Set.to_list fs)
@@ -1149,7 +1151,7 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
             CertifiedSMT.Smt.coerced = true;
             encoded = None;
             coercion_failures = [];
-            encoding_failures = [ raised "encode" e ];
+            encoding_failures = [ raised "verified-encoding" e ];
           }
       in
       let verified_query =
@@ -1162,7 +1164,7 @@ let exec_sat' (fs : Expr.Set.t) (gamma : typenv) : sexp option =
         | None -> (None, [])
         | Some encoded -> (
             try (Some (run_encoded_assertions ~use_certified:true encoded), [])
-            with e -> (None, [ raised "solve" e ]))
+            with e -> (None, [ raised "verified-solving" e ]))
       in
       let unverified_json =
         Certified_experiment.backend_json ~result:(Some unverified_run.result)
