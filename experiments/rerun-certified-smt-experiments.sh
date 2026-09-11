@@ -5,7 +5,13 @@ ROOT="${GILLIAN_ROOT:-/Users/st621/dev/Gillian}"
 TIMEOUT_SECONDS="${CERTIFIED_SMT_TIMEOUT_SECONDS:-120}"
 cd "$ROOT"
 
+# The verifier appends to the experiment log, so a rerun that did not start
+# from an empty file would mix this corpus with whatever ran before it. Clear
+# the log and the per-case output here, so the artefacts in this directory
+# always describe exactly one run of this script.
 mkdir -p experiments/certified-smt-rerun-logs
+rm -f experiments/certified-smt-rerun-logs/*.out experiments/certified-smt-rerun-logs/*.err
+: > experiments/certified-smt.jsonl
 FAILED=0
 
 run_cmd() {
